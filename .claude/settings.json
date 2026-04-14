@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "claude plugin marketplace update nohlabs-claude-plugins 2>/dev/null || true",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "sdlc@nohlabs-claude-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "nohlabs-claude-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "nohlabs/claude-plugins"
+      }
+    }
+  }
+}
