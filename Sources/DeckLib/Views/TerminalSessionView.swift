@@ -390,19 +390,29 @@ esac
 
     override public func keyDown(with event: NSEvent) {
         guard let surface = surface else { return }
+
         var keyEvent = ghostty_input_key_s()
         keyEvent.action = GHOSTTY_ACTION_PRESS
         keyEvent.mods = translateMods(event.modifierFlags)
         keyEvent.keycode = UInt32(event.keyCode)
         keyEvent.composing = false
-        if let chars = event.characters {
+
+        // Only set text for actual printable characters
+        // Arrow keys, function keys etc. produce Unicode private-use chars (U+F700+) — exclude those
+        if let chars = event.characters, !chars.isEmpty,
+           chars.unicodeScalars.allSatisfy({ $0.value >= 0x20 && $0.value < 0xF700 }) {
             keyEvent.text = (chars as NSString).utf8String
         }
-        ghostty_surface_key(surface, keyEvent)
+
+        if !ghostty_surface_key(surface, keyEvent) {
+            // Ghostty didn't handle it — fall through to standard input handling
+            interpretKeyEvents([event])
+        }
     }
 
     override public func keyUp(with event: NSEvent) {
         guard let surface = surface else { return }
+
         var keyEvent = ghostty_input_key_s()
         keyEvent.action = GHOSTTY_ACTION_RELEASE
         keyEvent.mods = translateMods(event.modifierFlags)
