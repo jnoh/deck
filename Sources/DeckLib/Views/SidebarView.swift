@@ -63,8 +63,12 @@ public struct SidebarView: View {
         }
         .listStyle(.sidebar)
         .frame(minWidth: 200)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+        .safeAreaInset(edge: .top) {
+            HStack {
+                Text("Sessions")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Spacer()
                 Menu {
                     if sessionManager.blueprints.isEmpty {
                         Text("No apps found")
@@ -83,9 +87,14 @@ public struct SidebarView: View {
                     }
                 } label: {
                     Image(systemName: "plus")
+                        .font(.title3)
                 }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
                 .help("New Session")
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
         }
         .sheet(item: $blueprintForSheet) { blueprint in
             CreateSessionSheet(blueprint: blueprint) { name, dir in
