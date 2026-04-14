@@ -4,9 +4,11 @@ import DeckLib
 struct MainView: View {
     @Bindable var coordinator: AppCoordinator
     @State private var didSetup = false
+    @State private var sidebarWidth: CGFloat = 260
 
     var body: some View {
-        NavigationSplitView(columnVisibility: .constant(.doubleColumn)) {
+        HStack(spacing: 0) {
+            // Sidebar
             SidebarView(
                 sessionManager: coordinator.sessionManager,
                 selectedSessionId: $coordinator.selectedSessionId,
@@ -14,13 +16,31 @@ struct MainView: View {
                     coordinator.createAndStartSession(from: blueprint, name: name, workingDir: dir)
                 }
             )
-            .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 400)
-        } detail: {
+            .frame(width: sidebarWidth)
+
+            // Draggable divider
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(width: 1)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            let new = sidebarWidth + value.translation.width
+                            sidebarWidth = max(200, min(400, new))
+                        }
+                )
+                .onHover { hovering in
+                    if hovering {
+                        NSCursor.resizeLeftRight.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+
+            // Detail
             detailView
-                .ignoresSafeArea(.all, edges: .top)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .navigationSplitViewStyle(.balanced)
-        .toolbar(removing: .sidebarToggle)
         .onChange(of: coordinator.selectedSessionId) { _, newId in
             if let id = newId, let session = coordinator.sessionManager.session(byId: id) {
                 session.status.clearAttention()
@@ -35,10 +55,8 @@ struct MainView: View {
             NSApp.activate(ignoringOtherApps: true)
             coordinator.setup()
 
-
-            // Set initial window size centered on screen
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                if let window = NSApp.windows.first(where: { $0.title == "Deck" || $0.isKeyWindow }) {
+                if let window = NSApp.windows.first(where: { $0.isKeyWindow || $0.title == "Deck" }) {
                     let screen = window.screen ?? NSScreen.main!
                     let w: CGFloat = 1100
                     let h: CGFloat = 700
@@ -56,8 +74,6 @@ struct MainView: View {
     @ViewBuilder
     private var detailView: some View {
         ZStack {
-            // Keep ALL active terminal views alive, only show the selected one.
-            // This prevents PTY restarts when switching sessions.
             ForEach(coordinator.sessionManager.sessions.filter {
                 $0.state == .running || $0.state == .degraded || $0.state == .starting
             }) { session in
@@ -69,7 +85,6 @@ struct MainView: View {
                 .allowsHitTesting(session.id == coordinator.selectedSessionId)
             }
 
-            // Show stopped/empty state on top when applicable
             if let sessionId = coordinator.selectedSessionId,
                let session = coordinator.sessionManager.session(byId: sessionId) {
                 if session.state == .stopped {
@@ -115,12 +130,12 @@ struct MainView: View {
                 .font(.title2)
                 .foregroundStyle(.secondary)
             if coordinator.sessionManager.blueprints.isEmpty {
-                Text("Add .toml blueprint files to\n~/.config/deck/sessions/")
+                Text("Add .deck packages to ~/.deck/apps/")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
             } else {
-                Text("Click + to create a session from a blueprint")
+                Text("Click + to create a session")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)
             }
