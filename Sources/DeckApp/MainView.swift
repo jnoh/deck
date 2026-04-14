@@ -4,11 +4,9 @@ import DeckLib
 struct MainView: View {
     @Bindable var coordinator: AppCoordinator
     @State private var didSetup = false
-    @State private var sidebarWidth: CGFloat = 260
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Sidebar
+        NavigationSplitView(columnVisibility: .constant(.doubleColumn)) {
             SidebarView(
                 sessionManager: coordinator.sessionManager,
                 selectedSessionId: $coordinator.selectedSessionId,
@@ -16,31 +14,13 @@ struct MainView: View {
                     coordinator.createAndStartSession(from: blueprint, name: name, workingDir: dir)
                 }
             )
-            .frame(width: sidebarWidth)
-
-            // Draggable divider
-            Rectangle()
-                .fill(Color(nsColor: .separatorColor))
-                .frame(width: 1)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            let new = sidebarWidth + value.translation.width
-                            sidebarWidth = max(200, min(400, new))
-                        }
-                )
-                .onHover { hovering in
-                    if hovering {
-                        NSCursor.resizeLeftRight.push()
-                    } else {
-                        NSCursor.pop()
-                    }
-                }
-
-            // Detail
+            .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 400)
+        } detail: {
             detailView
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea(.all, edges: .top)
         }
+        .navigationSplitViewStyle(.balanced)
+        .toolbar(removing: .sidebarToggle)
         .onChange(of: coordinator.selectedSessionId) { _, newId in
             if let id = newId, let session = coordinator.sessionManager.session(byId: id) {
                 session.status.clearAttention()

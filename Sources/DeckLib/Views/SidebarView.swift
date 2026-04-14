@@ -19,38 +19,9 @@ public struct SidebarView: View {
         self.onCreateSession = onCreateSession
     }
 
-    private var addMenu: some View {
-        Menu {
-            if sessionManager.blueprints.isEmpty {
-                Text("No apps found")
-                Text("Add .deck packages to ~/.deck/apps/")
-            } else {
-                ForEach(sessionManager.blueprints, id: \.name) { blueprint in
-                    Button {
-                        blueprintForSheet = blueprint
-                    } label: {
-                        Label(
-                            "\(blueprint.icon) \(blueprint.name)",
-                            systemImage: blueprint.type == .local ? "terminal" : "network"
-                        )
-                    }
-                }
-            }
-        } label: {
-            Image(systemName: "plus.circle.fill")
-                .font(.title2)
-                .symbolRenderingMode(.hierarchical)
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help("New Session")
-    }
-
     public var body: some View {
-        ZStack(alignment: .topTrailing) {
-            List(selection: $selectedSessionId) {
-                if !sessionManager.runningSessions.isEmpty {
+        List(selection: $selectedSessionId) {
+            if !sessionManager.runningSessions.isEmpty {
                 Section("Running") {
                     ForEach(sessionManager.runningSessions) { session in
                         sessionRow(session)
@@ -89,14 +60,33 @@ public struct SidebarView: View {
                     Text("Click + to create a session.")
                 }
             }
-            }
-            .listStyle(.sidebar)
-
-            addMenu
-                .padding(.top, 4)
-                .padding(.trailing, 8)
         }
+        .listStyle(.sidebar)
         .frame(minWidth: 200)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    if sessionManager.blueprints.isEmpty {
+                        Text("No apps found")
+                        Text("Add .deck packages to ~/.deck/apps/")
+                    } else {
+                        ForEach(sessionManager.blueprints, id: \.name) { blueprint in
+                            Button {
+                                blueprintForSheet = blueprint
+                            } label: {
+                                Label(
+                                    "\(blueprint.icon) \(blueprint.name)",
+                                    systemImage: blueprint.type == .local ? "terminal" : "network"
+                                )
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .help("New Session")
+            }
+        }
         .sheet(item: $blueprintForSheet) { blueprint in
             CreateSessionSheet(blueprint: blueprint) { name, dir in
                 onCreateSession?(blueprint, name, dir)
