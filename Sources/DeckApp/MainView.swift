@@ -45,6 +45,7 @@ struct MainView: View {
                     let x = screen.visibleFrame.origin.x + (screen.visibleFrame.width - w) / 2
                     let y = screen.visibleFrame.origin.y + (screen.visibleFrame.height - h) / 2
                     window.setFrame(NSRect(x: x, y: y, width: w, height: h), display: true, animate: false)
+                    window.isMovableByWindowBackground = false
                 }
             }
         }
