@@ -535,12 +535,43 @@ esac
         sendMousePos(event: event)
     }
 
+    nonisolated(unsafe) private var dragScrollTimer: Timer?
+    nonisolated(unsafe) private var lastDragEvent: NSEvent?
+
     override public func mouseDragged(with event: NSEvent) {
         sendMousePos(event: event)
+        lastDragEvent = event
+
+        // Check if mouse is outside view bounds for auto-scroll
+        let pt = convert(event.locationInWindow, from: nil)
+        let ghosttyY = frame.height - pt.y
+
+        if ghosttyY < 0 || ghosttyY > frame.height {
+            if dragScrollTimer == nil {
+                dragScrollTimer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] _ in
+                    guard let self = self, let surface = self.surface, let event = self.lastDragEvent else { return }
+                    let pt = self.convert(event.locationInWindow, from: nil)
+                    let gy = self.frame.height - pt.y
+
+                    // Send the out-of-bounds position
+                    ghostty_surface_mouse_pos(surface, pt.x, gy, self.translateMods(event.modifierFlags))
+
+                    // Also scroll in the appropriate direction
+                    let scrollAmount: Double = gy < 0 ? -1 : 1
+                    ghostty_surface_mouse_scroll(surface, 0, scrollAmount, 0)
+                }
+            }
+        } else {
+            dragScrollTimer?.invalidate()
+            dragScrollTimer = nil
+        }
     }
 
     override public func mouseUp(with event: NSEvent) {
         guard let surface = surface else { return }
+        dragScrollTimer?.invalidate()
+        dragScrollTimer = nil
+        lastDragEvent = nil
         sendMousePos(event: event)
         ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_LEFT, translateMods(event.modifierFlags))
     }
