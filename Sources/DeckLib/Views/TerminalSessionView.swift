@@ -543,6 +543,8 @@ esac
 
     override public func mouseDragged(with event: NSEvent) {
         sendMousePos(event: event)
+        // Auto-scroll when dragging beyond view bounds (for text selection)
+        autoscroll(with: event)
     }
 
     override public func scrollWheel(with event: NSEvent) {
