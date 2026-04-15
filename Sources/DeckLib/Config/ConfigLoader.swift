@@ -50,20 +50,13 @@ public struct ConfigLoader {
 
         var configs: [SessionConfig] = []
 
-        for item in contents {
-            if item.pathExtension == "toml" {
-                let tomlString = try String(contentsOf: item, encoding: .utf8)
-                let config = try SessionConfig.parse(from: tomlString, filePath: item)
-                configs.append(config)
-
-            } else if item.pathExtension == "deck" {
-                let tomlFile = item.appendingPathComponent("session.toml")
-                guard fm.fileExists(atPath: tomlFile.path) else { continue }
-                let tomlString = try String(contentsOf: tomlFile, encoding: .utf8)
-                var config = try SessionConfig.parse(from: tomlString, filePath: tomlFile)
-                config.packageDir = item
-                configs.append(config)
-            }
+        for item in contents where item.pathExtension == "deck" {
+            let tomlFile = item.appendingPathComponent("session.toml")
+            guard fm.fileExists(atPath: tomlFile.path) else { continue }
+            let tomlString = try String(contentsOf: tomlFile, encoding: .utf8)
+            var config = try SessionConfig.parse(from: tomlString, filePath: tomlFile)
+            config.packageDir = item
+            configs.append(config)
         }
 
         return configs
