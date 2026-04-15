@@ -159,6 +159,10 @@ public class GhosttyTerminalNSView: NSView {
     override public var acceptsFirstResponder: Bool { true }
     override public var isFlipped: Bool { true }
 
+    override public func resetCursorRects() {
+        addCursorRect(bounds, cursor: .iBeam)
+    }
+
     override public init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
