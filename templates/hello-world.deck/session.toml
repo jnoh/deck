@@ -1,0 +1,8 @@
+[session]
+name = "hello-world"
+type = "local"
+icon = "👋"
+description = "Simple shell session"
+
+[startup]
+working_dir = "~"

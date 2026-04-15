@@ -1,0 +1,8 @@
+[session]
+name = "claude-code"
+type = "local"
+icon = "🤖"
+description = "Claude Code agent"
+
+[startup]
+working_dir = "~"
