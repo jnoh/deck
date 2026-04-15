@@ -13,10 +13,35 @@ public struct ConfigLoader {
         }
     }
 
+    /// Load configs from both bundled templates and user directory.
+    /// User configs override bundled ones with the same name.
     public static func loadAll(from directory: URL = defaultConfigDirectory) throws -> [SessionConfig] {
         try ensureConfigDirectory(at: directory)
 
+        var configsByName: [String: SessionConfig] = [:]
+
+        // 1. Load bundled templates from app bundle
+        if let bundlePath = Bundle.main.resourcePath {
+            let templatesDir = URL(fileURLWithPath: bundlePath).appendingPathComponent("templates")
+            if FileManager.default.fileExists(atPath: templatesDir.path) {
+                for config in try loadFromDirectory(templatesDir) {
+                    configsByName[config.name] = config
+                }
+            }
+        }
+
+        // 2. Load user configs — these override bundled ones
+        for config in try loadFromDirectory(directory) {
+            configsByName[config.name] = config
+        }
+
+        return configsByName.values.sorted { $0.name < $1.name }
+    }
+
+    private static func loadFromDirectory(_ directory: URL) throws -> [SessionConfig] {
         let fm = FileManager.default
+        guard fm.fileExists(atPath: directory.path) else { return [] }
+
         let contents = try fm.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -27,13 +52,11 @@ public struct ConfigLoader {
 
         for item in contents {
             if item.pathExtension == "toml" {
-                // Flat TOML blueprint
                 let tomlString = try String(contentsOf: item, encoding: .utf8)
                 let config = try SessionConfig.parse(from: tomlString, filePath: item)
                 configs.append(config)
 
             } else if item.pathExtension == "deck" {
-                // Directory package — read session.toml inside
                 let tomlFile = item.appendingPathComponent("session.toml")
                 guard fm.fileExists(atPath: tomlFile.path) else { continue }
                 let tomlString = try String(contentsOf: tomlFile, encoding: .utf8)
@@ -43,6 +66,6 @@ public struct ConfigLoader {
             }
         }
 
-        return configs.sorted { $0.name < $1.name }
+        return configs
     }
 }
