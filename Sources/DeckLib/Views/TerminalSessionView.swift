@@ -157,6 +157,7 @@ public class GhosttyTerminalNSView: NSView {
     nonisolated(unsafe) private var statusPollTimer: Timer?
 
     override public var acceptsFirstResponder: Bool { true }
+    override public var isFlipped: Bool { true }
 
     override public init(frame: NSRect) {
         super.init(frame: frame)
@@ -449,11 +450,10 @@ esac
 
     private func sendMousePos(event: NSEvent) {
         guard let surface = surface else { return }
-        var pt = convert(event.locationInWindow, from: nil)
-        // NSView with isFlipped=true: convert handles the flip, but ghostty
-        // expects pixel coordinates relative to the view's top-left
-        let scale = Double(window?.backingScaleFactor ?? 2.0)
-        ghostty_surface_mouse_pos(surface, pt.x * scale, pt.y * scale, translateMods(event.modifierFlags))
+        let pt = convert(event.locationInWindow, from: nil)
+        // Send point coordinates — ghostty handles the scale conversion
+        // internally since we set content_scale on the surface
+        ghostty_surface_mouse_pos(surface, pt.x, pt.y, translateMods(event.modifierFlags))
     }
 
     override public func mouseDown(with event: NSEvent) {
