@@ -81,7 +81,28 @@ if ! command -v claude &>/dev/null; then
     exec bash -l
 fi
 
-HOOKS='{\"hooks\":{\"PostToolUse\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"deck status --state working --desc Working\"}]}],\"Stop\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"deck status --state needs-input --desc Your_turn\"}]}],\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"deck status --state connected --desc Connected\"}]}]}}'
+# Create on-prompt hook script
+cat > /tmp/deck-on-prompt.sh << 'PROMPTHOOK'
+#!/bin/bash
+TITLE_FLAG="/tmp/deck-title-${DECK_SESSION_ID}"
+INPUT=$(perl -e 'alarm 2; local $/; print <STDIN>' 2>/dev/null || true)
+if [ ! -f "$TITLE_FLAG" ] && [ -n "$INPUT" ]; then
+    touch "$TITLE_FLAG"
+    PROMPT=$(echo "$INPUT" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(d.get('prompt', '')[:50])
+except:
+    pass
+" 2>/dev/null)
+    [ -n "$PROMPT" ] && deck title "$PROMPT"
+fi
+deck status --state working --desc "Processing prompt"
+PROMPTHOOK
+chmod +x /tmp/deck-on-prompt.sh
+
+HOOKS='{\"hooks\":{\"UserPromptSubmit\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"/tmp/deck-on-prompt.sh\"}]}],\"PostToolUse\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"deck status --state working --desc Working\"}]}],\"Stop\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"deck status --state needs-input --desc Your_turn\"}]}],\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"deck status --state connected --desc Connected\"}]}]}}'
 
 if tmux has-session -t \"\$DECK_TMUX\" 2>/dev/null; then
     tmux attach -t \"\$DECK_TMUX\"
