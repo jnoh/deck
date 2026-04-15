@@ -451,16 +451,10 @@ esac
     }
 
     override public func insertText(_ insertString: Any) {
-        guard let surface = surface else { return }
-        let text: String
-        switch insertString {
-        case let s as String: text = s
-        case let s as NSAttributedString: text = s.string
-        default: return
-        }
-        text.withCString { cstr in
-            ghostty_surface_text(surface, cstr, UInt(strlen(cstr)))
-        }
+        // Text is already sent via keyEvent.text in keyDown.
+        // This method is only needed for IME composition (marked text).
+        // Without interpretKeyEvents, macOS shouldn't call this for
+        // regular typing — but if it does, we skip to avoid doubling.
     }
 
     private func makeGhosttyKeyEvent(_ action: ghostty_input_action_e, event: NSEvent) -> ghostty_input_key_s {
