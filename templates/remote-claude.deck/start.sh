@@ -7,15 +7,10 @@ TMUX_SESSION="deck-${DECK_SESSION_ID}"
 deck title "$SSH_HOST"
 deck status --state starting --desc "Connecting to $SSH_HOST"
 
-# Single SSH: pipe a script via stdin and execute it with bash
-ssh -t "$SSH_DEST" bash -s "$TMUX_SESSION" "${REMOTE_DIR:-\$HOME}" "$DECK_SESSION_ID" <<'REMOTE_SCRIPT'
-TMUX_SESSION="$1"
-REMOTE_DIR="$2"
-DECK_SESSION_ID="$3"
-
+# Encode the remote script as base64 so we can pass it as an argument
+# (stdin must stay free for the SSH terminal)
+REMOTE_SCRIPT=$(base64 <<'SCRIPT'
 export PATH="/tmp/deck-bin-remote:$PATH"
-export DECK_SESSION_ID
-cd "$REMOTE_DIR" 2>/dev/null || cd ~
 
 if ! command -v tmux &>/dev/null; then
     echo "Error: tmux is not installed."
@@ -28,11 +23,18 @@ fi
 
 HOOKS='{"hooks":{"PostToolUse":[{"hooks":[{"type":"command","command":"deck status --state working --desc Working"}]}],"Stop":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"SessionStart":[{"hooks":[{"type":"command","command":"deck status --state connected --desc Connected"}]}]}}'
 
-if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
-    tmux attach -t "$TMUX_SESSION"
+if tmux has-session -t "$DECK_TMUX" 2>/dev/null; then
+    tmux attach -t "$DECK_TMUX"
 else
-    tmux new-session -s "$TMUX_SESSION" "claude --settings '$HOOKS'"
+    tmux new-session -s "$DECK_TMUX" "claude --settings '$HOOKS'"
 fi
-REMOTE_SCRIPT
+SCRIPT
+)
+
+# Single SSH connection — decode and run the script on the remote side
+ssh -t "$SSH_DEST" \
+    "export DECK_TMUX='$TMUX_SESSION' DECK_SESSION_ID='$DECK_SESSION_ID'; \
+     cd '${REMOTE_DIR:-\$HOME}' 2>/dev/null; \
+     echo '$REMOTE_SCRIPT' | base64 -d | bash"
 
 deck exit
