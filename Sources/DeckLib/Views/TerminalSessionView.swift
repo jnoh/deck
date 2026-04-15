@@ -157,7 +157,6 @@ public class GhosttyTerminalNSView: NSView {
     nonisolated(unsafe) private var statusPollTimer: Timer?
 
     override public var acceptsFirstResponder: Bool { true }
-    override public var isFlipped: Bool { true }
 
     override public init(frame: NSRect) {
         super.init(frame: frame)
