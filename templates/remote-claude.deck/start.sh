@@ -99,7 +99,7 @@ chmod +x $REMOTE_SCRIPT
         if [ -n "$CONTENT" ]; then
             echo "$CONTENT" >> "$LOCAL_STATUS"
         fi
-        sleep 0.5
+        sleep 0.1
     done
 ) &
 POLLER_PID=$!
