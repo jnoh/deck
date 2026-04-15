@@ -38,6 +38,15 @@ public final class GhosttyService: @unchecked Sendable {
         return session
     }
 
+    /// Find the NSView for a given session ID
+    public func terminalView(forSessionId id: String) -> GhosttyTerminalNSView? {
+        mapLock.lock()
+        let result = surfaceSessionMap.first { _, session in session.id == id }
+        mapLock.unlock()
+        guard let ptr = result?.key else { return nil }
+        return Unmanaged<GhosttyTerminalNSView>.fromOpaque(ptr).takeUnretainedValue()
+    }
+
     private init() {}
 
     /// Path where a session's status file lives

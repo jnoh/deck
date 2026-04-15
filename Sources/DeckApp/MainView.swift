@@ -26,23 +26,7 @@ struct MainView: View {
                 session.status.clearAttention()
             }
             // Focus the selected terminal view
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                if let window = NSApp.keyWindow {
-                    // Find the visible GhosttyTerminalNSView and focus it
-                    func findTerminalView(in view: NSView) -> GhosttyTerminalNSView? {
-                        if let tv = view as? GhosttyTerminalNSView, tv.alphaValue > 0, !tv.isHidden {
-                            return tv
-                        }
-                        for sub in view.subviews {
-                            if let found = findTerminalView(in: sub) { return found }
-                        }
-                        return nil
-                    }
-                    if let tv = findTerminalView(in: window.contentView!) {
-                        window.makeFirstResponder(tv)
-                    }
-                }
-            }
+            focusSelectedTerminal()
         }
         .frame(minWidth: 800, minHeight: 500)
         .onAppear {
@@ -139,6 +123,16 @@ struct MainView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func focusSelectedTerminal() {
+        guard let id = coordinator.selectedSessionId else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            if let view = GhosttyService.shared.terminalView(forSessionId: id),
+               let window = view.window {
+                window.makeFirstResponder(view)
+            }
+        }
     }
 
     private func handleURL(_ url: URL) {
