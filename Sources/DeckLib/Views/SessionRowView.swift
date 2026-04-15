@@ -9,9 +9,6 @@ public struct SessionRowView: View {
 
     public var body: some View {
         HStack(spacing: 8) {
-            Text(session.status.icon ?? session.config.icon)
-                .font(.title3)
-
             VStack(alignment: .leading, spacing: 2) {
                 Text(session.displayName)
                     .font(.headline)

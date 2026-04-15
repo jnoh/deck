@@ -566,7 +566,6 @@ public struct TerminalSessionView: NSViewRepresentable {
         // Only grab focus if this view is visible (opacity > 0 means it's the selected session)
         // The ZStack keeps all terminal views alive — we must not let hidden ones steal focus
     }
-    }
 
     public static func dismantleNSView(_ nsView: GhosttyTerminalNSView, coordinator: ()) {
         nsView.destroySurface()
