@@ -157,7 +157,6 @@ public class GhosttyTerminalNSView: NSView {
     nonisolated(unsafe) private var statusPollTimer: Timer?
 
     override public var acceptsFirstResponder: Bool { true }
-    override public var isFlipped: Bool { true }
 
     override public func resetCursorRects() {
         addCursorRect(bounds, cursor: .iBeam)
@@ -400,52 +399,103 @@ esac
     }
 
     // MARK: - Keyboard
+    //
+    // Input handling based on the official Ghostty macOS app patterns.
+
+    override public func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard event.type == .keyDown, let surface = surface else { return false }
+
+        // Check if ghostty wants this key combo (e.g., terminal keybindings)
+        var keyEvent = makeGhosttyKeyEvent(GHOSTTY_ACTION_PRESS, event: event)
+        if ghostty_surface_key_is_binding(surface, keyEvent, nil) {
+            self.keyDown(with: event)
+            return true
+        }
+
+        // Let macOS handle Cmd shortcuts (copy, paste, quit, etc.)
+        return false
+    }
 
     override public func keyDown(with event: NSEvent) {
         guard let surface = surface else { return }
-
-        // Let Cmd shortcuts go through the macOS responder chain
-        // (Cmd+C, Cmd+V, Cmd+Q, etc.)
-        if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.control) {
-            super.keyDown(with: event)
-            return
-        }
-
-        var keyEvent = ghostty_input_key_s()
-        keyEvent.action = GHOSTTY_ACTION_PRESS
-        keyEvent.mods = translateMods(event.modifierFlags)
-        keyEvent.keycode = UInt32(event.keyCode)
-        keyEvent.composing = false
-
-        // Set text for all characters except macOS special keys (arrows, function keys)
-        // which produce Unicode private-use chars (U+F700+)
-        if let chars = event.characters, !chars.isEmpty,
-           chars.unicodeScalars.allSatisfy({ $0.value < 0xF700 }) {
-            keyEvent.text = (chars as NSString).utf8String
-        }
-
+        var keyEvent = makeGhosttyKeyEvent(GHOSTTY_ACTION_PRESS, event: event)
         ghostty_surface_key(surface, keyEvent)
     }
 
     override public func keyUp(with event: NSEvent) {
         guard let surface = surface else { return }
+        var keyEvent = makeGhosttyKeyEvent(GHOSTTY_ACTION_RELEASE, event: event)
+        ghostty_surface_key(surface, keyEvent)
+    }
 
-        var keyEvent = ghostty_input_key_s()
-        keyEvent.action = GHOSTTY_ACTION_RELEASE
-        keyEvent.mods = translateMods(event.modifierFlags)
-        keyEvent.keycode = UInt32(event.keyCode)
-        keyEvent.composing = false
+    override public func flagsChanged(with event: NSEvent) {
+        guard let surface = surface else { return }
+
+        // Determine press vs release by checking if the modifier is currently active
+        let pressed: Bool
+        switch event.keyCode {
+        case 0x39: pressed = event.modifierFlags.contains(.capsLock)
+        case 0x38, 0x3C: pressed = event.modifierFlags.contains(.shift)
+        case 0x3B, 0x3E: pressed = event.modifierFlags.contains(.control)
+        case 0x3A, 0x3D: pressed = event.modifierFlags.contains(.option)
+        case 0x37, 0x36: pressed = event.modifierFlags.contains(.command)
+        default: return
+        }
+
+        let action = pressed ? GHOSTTY_ACTION_PRESS : GHOSTTY_ACTION_RELEASE
+        var keyEvent = makeGhosttyKeyEvent(action, event: event)
         ghostty_surface_key(surface, keyEvent)
     }
 
     override public func insertText(_ insertString: Any) {
-        guard let surface = surface, let text = insertString as? String else { return }
+        guard let surface = surface else { return }
+        let text: String
+        switch insertString {
+        case let s as String: text = s
+        case let s as NSAttributedString: text = s.string
+        default: return
+        }
         text.withCString { cstr in
             ghostty_surface_text(surface, cstr, UInt(strlen(cstr)))
         }
     }
 
+    private func makeGhosttyKeyEvent(_ action: ghostty_input_action_e, event: NSEvent) -> ghostty_input_key_s {
+        var keyEvent = ghostty_input_key_s()
+        keyEvent.action = action
+        keyEvent.mods = translateMods(event.modifierFlags)
+        keyEvent.keycode = UInt32(event.keyCode)
+        keyEvent.composing = false
+
+        // Set text — skip control chars and macOS private-use area (function/arrow keys)
+        if action == GHOSTTY_ACTION_PRESS, let chars = event.characters, chars.count > 0 {
+            if let scalar = chars.unicodeScalars.first {
+                if scalar.value >= 0x20 && scalar.value < 0xF700 {
+                    keyEvent.text = (chars as NSString).utf8String
+                } else if scalar.value < 0x20 {
+                    // Control character — get the unmodified version
+                    if let unmod = event.characters(byApplyingModifiers: event.modifierFlags.subtracting(.control)) {
+                        keyEvent.text = (unmod as NSString).utf8String
+                    }
+                }
+            }
+        }
+
+        // Unshifted codepoint for keyboard layout detection
+        if event.type == .keyDown || event.type == .keyUp {
+            if let unshifted = event.characters(byApplyingModifiers: []),
+               let cp = unshifted.unicodeScalars.first {
+                keyEvent.unshifted_codepoint = cp.value
+            }
+        }
+
+        return keyEvent
+    }
+
     // MARK: - Mouse
+    //
+    // Ghostty uses top-left origin. AppKit uses bottom-left.
+    // We flip Y: ghosttyY = frame.height - appkitY
 
     override public func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -462,9 +512,8 @@ esac
     private func sendMousePos(event: NSEvent) {
         guard let surface = surface else { return }
         let pt = convert(event.locationInWindow, from: nil)
-        // Send point coordinates — ghostty handles the scale conversion
-        // internally since we set content_scale on the surface
-        ghostty_surface_mouse_pos(surface, pt.x, pt.y, translateMods(event.modifierFlags))
+        // Flip Y: AppKit bottom-left → Ghostty top-left
+        ghostty_surface_mouse_pos(surface, pt.x, frame.height - pt.y, translateMods(event.modifierFlags))
     }
 
     override public func mouseDown(with event: NSEvent) {
@@ -477,6 +526,22 @@ esac
         guard let surface = surface else { return }
         sendMousePos(event: event)
         ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_LEFT, translateMods(event.modifierFlags))
+    }
+
+    override public func rightMouseDown(with event: NSEvent) {
+        guard let surface = surface else { return }
+        sendMousePos(event: event)
+        if !ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_RIGHT, translateMods(event.modifierFlags)) {
+            super.rightMouseDown(with: event)
+        }
+    }
+
+    override public func rightMouseUp(with event: NSEvent) {
+        guard let surface = surface else { return }
+        sendMousePos(event: event)
+        if !ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_RIGHT, translateMods(event.modifierFlags)) {
+            super.rightMouseUp(with: event)
+        }
     }
 
     override public func mouseMoved(with event: NSEvent) {
