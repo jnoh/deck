@@ -39,15 +39,17 @@ public struct CreateSessionSheet: View {
                 }
             }
 
-            // Directory picker (always shown)
-            LabeledContent("Directory") {
-                HStack {
-                    TextField("~/projects/myapp", text: $workingDir)
-                        .textFieldStyle(.roundedBorder)
+            // Directory picker — hide if template has its own directory param
+            if !blueprint.params.contains(where: { $0.key.lowercased().contains("dir") }) {
+                LabeledContent("Directory") {
+                    HStack {
+                        TextField("~/projects/myapp", text: $workingDir)
+                            .textFieldStyle(.roundedBorder)
 
-                    if blueprint.type == .local {
-                        Button("Browse...") {
-                            browseDirectory()
+                        if blueprint.type == .local {
+                            Button("Browse...") {
+                                browseDirectory()
+                            }
                         }
                     }
                 }
