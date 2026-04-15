@@ -535,45 +535,14 @@ esac
         sendMousePos(event: event)
     }
 
-    nonisolated(unsafe) private var dragScrollTimer: Timer?
-
     override public func mouseDragged(with event: NSEvent) {
         sendMousePos(event: event)
-
-        // Auto-scroll when dragging above/below the view for text selection
-        guard let surface = surface else { return }
-        let pt = convert(event.locationInWindow, from: nil)
-        let ghosttyY = frame.height - pt.y
-
-        if ghosttyY < 0 {
-            // Above view — scroll up
-            startDragScroll(direction: -3)
-        } else if ghosttyY > frame.height {
-            // Below view — scroll down
-            startDragScroll(direction: 3)
-        } else {
-            stopDragScroll()
-        }
     }
 
     override public func mouseUp(with event: NSEvent) {
         guard let surface = surface else { return }
-        stopDragScroll()
         sendMousePos(event: event)
         ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_LEFT, translateMods(event.modifierFlags))
-    }
-
-    private func startDragScroll(direction: Double) {
-        stopDragScroll()
-        dragScrollTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            guard let self = self, let surface = self.surface else { return }
-            ghostty_surface_mouse_scroll(surface, 0, direction, 1)
-        }
-    }
-
-    private func stopDragScroll() {
-        dragScrollTimer?.invalidate()
-        dragScrollTimer = nil
     }
 
     override public func scrollWheel(with event: NSEvent) {
