@@ -1,4 +1,3 @@
 #!/bin/bash
-echo "👋 Hello from Deck!"
-echo ""
+deck status --state idle --desc "$(pwd)"
 exec "${SHELL:-/bin/zsh}" -l
