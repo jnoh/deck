@@ -397,10 +397,10 @@ esac
         keyEvent.keycode = UInt32(event.keyCode)
         keyEvent.composing = false
 
-        // Only set text for actual printable characters
-        // Arrow keys, function keys etc. produce Unicode private-use chars (U+F700+) — exclude those
+        // Set text for all characters except macOS special keys (arrows, function keys)
+        // which produce Unicode private-use chars (U+F700+)
         if let chars = event.characters, !chars.isEmpty,
-           chars.unicodeScalars.allSatisfy({ $0.value >= 0x20 && $0.value < 0xF700 }) {
+           chars.unicodeScalars.allSatisfy({ $0.value < 0xF700 }) {
             keyEvent.text = (chars as NSString).utf8String
         }
 
