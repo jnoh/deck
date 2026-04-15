@@ -557,7 +557,7 @@ esac
                     ghostty_surface_mouse_pos(surface, pt.x, gy, self.translateMods(event.modifierFlags))
 
                     // Also scroll in the appropriate direction
-                    let scrollAmount: Double = gy < 0 ? -1 : 1
+                    let scrollAmount: Double = gy < 0 ? 1 : -1
                     ghostty_surface_mouse_scroll(surface, 0, scrollAmount, 0)
                 }
             }
