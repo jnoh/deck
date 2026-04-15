@@ -404,10 +404,7 @@ esac
             keyEvent.text = (chars as NSString).utf8String
         }
 
-        if !ghostty_surface_key(surface, keyEvent) {
-            // Ghostty didn't handle it — fall through to standard input handling
-            interpretKeyEvents([event])
-        }
+        ghostty_surface_key(surface, keyEvent)
     }
 
     override public func keyUp(with event: NSEvent) {
