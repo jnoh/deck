@@ -548,22 +548,13 @@ esac
     override public func scrollWheel(with event: NSEvent) {
         guard let surface = surface else { return }
 
-        var x = event.scrollingDeltaX
-        var y = event.scrollingDeltaY
+        let x = event.scrollingDeltaX
+        let y = event.scrollingDeltaY
 
-        // Trackpad precise scrolling needs scaling
-        if event.hasPreciseScrollingDeltas {
-            x *= 2
-            y *= 2
-        }
+        // Precision bit = 1 for trackpad, 0 for mouse wheel
+        let precision: Int32 = event.hasPreciseScrollingDeltas ? 1 : 0
 
-        // Build scroll mods: combines keyboard mods + precision flag
-        var scrollMods = translateMods(event.modifierFlags).rawValue
-        if event.hasPreciseScrollingDeltas {
-            scrollMods |= 0b01  // precision bit
-        }
-
-        ghostty_surface_mouse_scroll(surface, x, y, Int32(scrollMods))
+        ghostty_surface_mouse_scroll(surface, x, y, precision)
     }
 
     // MARK: - Exit Polling
