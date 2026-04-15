@@ -140,12 +140,12 @@ public final class GhosttyService: @unchecked Sendable {
 // MARK: - Terminal Surface NSView
 
 public class GhosttyTerminalNSView: NSView {
-    private var surface: ghostty_surface_t?
+    nonisolated(unsafe) private var surface: ghostty_surface_t?
     private var trackingArea: NSTrackingArea?
-    var onProcessExit: ((Int32?) -> Void)?
-    var session: Session?
-    private var exitPollTimer: Timer?
-    private var statusPollTimer: Timer?
+    nonisolated(unsafe) var onProcessExit: ((Int32?) -> Void)?
+    nonisolated(unsafe) var session: Session?
+    nonisolated(unsafe) private var exitPollTimer: Timer?
+    nonisolated(unsafe) private var statusPollTimer: Timer?
 
     override public var acceptsFirstResponder: Bool { true }
     override public var isFlipped: Bool { true }
