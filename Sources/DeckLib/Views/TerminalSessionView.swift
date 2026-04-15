@@ -548,12 +548,20 @@ esac
     override public func scrollWheel(with event: NSEvent) {
         guard let surface = surface else { return }
 
-        let x = event.scrollingDeltaX
-        let y = event.scrollingDeltaY
+        var x = event.scrollingDeltaX
+        var y = event.scrollingDeltaY
 
-        // Precision bit = 1 for trackpad, 0 for mouse wheel
+        if event.hasPreciseScrollingDeltas {
+            // Trackpad — scale up for smoother feel
+            x *= 2
+            y *= 2
+        } else {
+            // Mouse wheel — discrete steps, scale up significantly
+            x *= 10
+            y *= 10
+        }
+
         let precision: Int32 = event.hasPreciseScrollingDeltas ? 1 : 0
-
         ghostty_surface_mouse_scroll(surface, x, y, precision)
     }
 
