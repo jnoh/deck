@@ -410,7 +410,13 @@ esac
 
     // MARK: - Keyboard
     //
-    // Input handling based on the official Ghostty macOS app patterns.
+    // Matches the official Ghostty macOS app:
+    // 1. keyDown calls interpretKeyEvents to get text from macOS input system
+    // 2. insertText stores the text in keyTextAccumulator
+    // 3. After interpretKeyEvents returns, text is set on the key event
+    // 4. ghostty_surface_key is called with keycode + text
+
+    nonisolated(unsafe) private var keyTextAccumulator: [String]?
 
     override public func keyDown(with event: NSEvent) {
         guard let surface = surface else { return }
@@ -421,8 +427,22 @@ esac
             return
         }
 
+        // Accumulate text from interpretKeyEvents → insertText
+        keyTextAccumulator = []
+        interpretKeyEvents([event])
+        let text = keyTextAccumulator?.joined()
+        keyTextAccumulator = nil
+
         var keyEvent = makeGhosttyKeyEvent(GHOSTTY_ACTION_PRESS, event: event)
-        ghostty_surface_key(surface, keyEvent)
+
+        if let text = text, !text.isEmpty {
+            text.withCString { ptr in
+                keyEvent.text = ptr
+                ghostty_surface_key(surface, keyEvent)
+            }
+        } else {
+            ghostty_surface_key(surface, keyEvent)
+        }
     }
 
     override public func keyUp(with event: NSEvent) {
@@ -434,7 +454,6 @@ esac
     override public func flagsChanged(with event: NSEvent) {
         guard let surface = surface else { return }
 
-        // Determine press vs release by checking if the modifier is currently active
         let pressed: Bool
         switch event.keyCode {
         case 0x39: pressed = event.modifierFlags.contains(.capsLock)
@@ -451,17 +470,28 @@ esac
     }
 
     override public func insertText(_ insertString: Any) {
-        guard let surface = surface else { return }
         let text: String
         switch insertString {
         case let s as String: text = s
         case let s as NSAttributedString: text = s.string
         default: return
         }
+
+        // If keyTextAccumulator exists, we're inside interpretKeyEvents — accumulate
+        if keyTextAccumulator != nil {
+            keyTextAccumulator?.append(text)
+            return
+        }
+
+        // Otherwise, send directly (IME, paste, etc.)
+        guard let surface = surface else { return }
         text.withCString { cstr in
             ghostty_surface_text(surface, cstr, UInt(strlen(cstr)))
         }
     }
+
+    // doCommandBySelector is called by interpretKeyEvents for non-text keys.
+    // NSResponder already has a default implementation, no override needed.
 
     private func makeGhosttyKeyEvent(_ action: ghostty_input_action_e, event: NSEvent) -> ghostty_input_key_s {
         var keyEvent = ghostty_input_key_s()
@@ -469,12 +499,6 @@ esac
         keyEvent.mods = translateMods(event.modifierFlags)
         keyEvent.keycode = UInt32(event.keyCode)
         keyEvent.composing = false
-
-        // Don't set text here — ghostty generates text from the keycode.
-        // Setting text directly causes doubled characters in password prompts
-        // where both the key event text and ghostty's own text generation
-        // produce output. Only insertText (called by macOS input system)
-        // should send explicit text via ghostty_surface_text.
 
         // Unshifted codepoint for keyboard layout detection
         if event.type == .keyDown || event.type == .keyUp {
