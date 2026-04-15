@@ -3,12 +3,13 @@ import AppKit
 
 public struct CreateSessionSheet: View {
     let blueprint: SessionConfig
-    let onCreate: (String, String) -> Void  // (sessionName, workingDir)
+    let onCreate: (String, String, [String: String]) -> Void  // (name, workingDir, params)
     @Environment(\.dismiss) private var dismiss
 
     @State private var workingDir: String = ""
+    @State private var paramValues: [String: String] = [:]
 
-    public init(blueprint: SessionConfig, onCreate: @escaping (String, String) -> Void) {
+    public init(blueprint: SessionConfig, onCreate: @escaping (String, String, [String: String]) -> Void) {
         self.blueprint = blueprint
         self.onCreate = onCreate
     }
@@ -30,6 +31,15 @@ public struct CreateSessionSheet: View {
 
             Divider()
 
+            // Dynamic params from the TOML
+            ForEach(blueprint.params, id: \.key) { param in
+                LabeledContent(param.label) {
+                    TextField(param.placeholder ?? "", text: binding(for: param.key))
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+
+            // Directory picker (always shown)
             LabeledContent("Directory") {
                 HStack {
                     TextField("~/projects/myapp", text: $workingDir)
@@ -55,17 +65,34 @@ public struct CreateSessionSheet: View {
 
                 Button("Create") {
                     let dir = workingDir.isEmpty ? blueprint.startup.workingDir : workingDir
-                    onCreate(blueprint.name, dir)
+                    onCreate(blueprint.name, dir, paramValues)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
+                .disabled(!allRequiredFilled)
             }
         }
         .padding(20)
         .frame(width: 420)
         .onAppear {
             workingDir = blueprint.startup.workingDir
+            for param in blueprint.params {
+                paramValues[param.key] = param.defaultValue
+            }
+        }
+    }
+
+    private func binding(for key: String) -> Binding<String> {
+        Binding(
+            get: { paramValues[key] ?? "" },
+            set: { paramValues[key] = $0 }
+        )
+    }
+
+    private var allRequiredFilled: Bool {
+        blueprint.params.allSatisfy { param in
+            !param.isRequired || !(paramValues[param.key] ?? "").isEmpty
         }
     }
 

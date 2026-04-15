@@ -6,3 +6,15 @@ description = "Claude Code on a remote host via SSH + tmux"
 
 [startup]
 working_dir = "~"
+
+[[params]]
+key = "SSH_HOST"
+label = "Host"
+placeholder = "user@hostname"
+required = true
+
+[[params]]
+key = "REMOTE_DIR"
+label = "Remote Directory"
+placeholder = "/workspace/myapp"
+default = "~"

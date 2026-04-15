@@ -6,3 +6,9 @@ description = "SSH into a remote host"
 
 [startup]
 working_dir = "~"
+
+[[params]]
+key = "SSH_HOST"
+label = "Host"
+placeholder = "user@hostname"
+required = true

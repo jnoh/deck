@@ -140,6 +140,19 @@ private struct SessionSection: Codable {
     var description: String?
 }
 
+// MARK: - Session Parameter (user-configurable form field)
+
+public struct SessionParam: Codable, Sendable {
+    public let key: String
+    public let label: String
+    public var placeholder: String?
+    public var `default`: String?
+    public var required: Bool?
+
+    public var isRequired: Bool { `required` ?? false }
+    public var defaultValue: String { `default` ?? "" }
+}
+
 // MARK: - Raw TOML structure for decoding
 
 private struct RawSessionConfig: Codable {
@@ -148,6 +161,7 @@ private struct RawSessionConfig: Codable {
     var startup: StartupConfig?
     var teardown: TeardownConfig?
     var health: HealthConfig?
+    var params: [SessionParam]?
 }
 
 // MARK: - SessionConfig
@@ -161,9 +175,11 @@ public struct SessionConfig: Sendable {
     public let startup: StartupConfig
     public let teardown: TeardownConfig
     public let health: HealthConfig
+    public let params: [SessionParam]
     public var filePath: URL?
     public var packageDir: URL?
     public var overrideWorkingDir: String?
+    public var paramValues: [String: String] = [:]
 
     /// Effective working directory — override takes priority
     public var effectiveWorkingDir: String {
@@ -218,6 +234,7 @@ public struct SessionConfig: Sendable {
             startup: raw.startup ?? StartupConfig(),
             teardown: raw.teardown ?? TeardownConfig(),
             health: raw.health ?? HealthConfig(),
+            params: raw.params ?? [],
             filePath: filePath
         )
     }

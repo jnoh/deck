@@ -3,7 +3,7 @@ import SwiftUI
 public struct SidebarView: View {
     @Bindable var sessionManager: SessionManager
     @Binding var selectedSessionId: String?
-    var onCreateSession: ((SessionConfig, String, String) -> Void)?
+    var onCreateSession: ((SessionConfig, String, String, [String: String]) -> Void)?
 
     @State private var renamingSession: Session?
     @State private var renameText: String = ""
@@ -12,7 +12,7 @@ public struct SidebarView: View {
     public init(
         sessionManager: SessionManager,
         selectedSessionId: Binding<String?>,
-        onCreateSession: ((SessionConfig, String, String) -> Void)? = nil
+        onCreateSession: ((SessionConfig, String, String, [String: String]) -> Void)? = nil
     ) {
         self.sessionManager = sessionManager
         self._selectedSessionId = selectedSessionId
@@ -88,8 +88,8 @@ public struct SidebarView: View {
             }
         }
         .sheet(item: $blueprintForSheet) { blueprint in
-            CreateSessionSheet(blueprint: blueprint) { name, dir in
-                onCreateSession?(blueprint, name, dir)
+            CreateSessionSheet(blueprint: blueprint) { name, dir, params in
+                onCreateSession?(blueprint, name, dir, params)
             }
         }
         .alert("Rename Session", isPresented: .init(

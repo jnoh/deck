@@ -287,6 +287,16 @@ esac
             envVarArray.append(ghostty_env_var_s(key: pkgKey, value: pkgVal))
         }
 
+        // Inject user-configured params as env vars
+        if let session = session {
+            for (key, value) in session.config.paramValues where !value.isEmpty {
+                let envKey = strdup(key)!
+                let envVal = strdup(value)!
+                envKeepAlive.append(contentsOf: [envKey, envVal])
+                envVarArray.append(ghostty_env_var_s(key: envKey, value: envVal))
+            }
+        }
+
         // Use the user's default shell
         let userShell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
 
