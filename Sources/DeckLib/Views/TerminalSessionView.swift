@@ -402,22 +402,15 @@ esac
     //
     // Input handling based on the official Ghostty macOS app patterns.
 
-    override public func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard event.type == .keyDown, let surface = surface else { return false }
-
-        // Check if ghostty wants this key combo (e.g., terminal keybindings)
-        var keyEvent = makeGhosttyKeyEvent(GHOSTTY_ACTION_PRESS, event: event)
-        if ghostty_surface_key_is_binding(surface, keyEvent, nil) {
-            self.keyDown(with: event)
-            return true
-        }
-
-        // Let macOS handle Cmd shortcuts (copy, paste, quit, etc.)
-        return false
-    }
-
     override public func keyDown(with event: NSEvent) {
         guard let surface = surface else { return }
+
+        // Cmd shortcuts go to macOS (quit, copy, paste, hide, minimize, etc.)
+        if event.modifierFlags.contains(.command) {
+            super.keyDown(with: event)
+            return
+        }
+
         var keyEvent = makeGhosttyKeyEvent(GHOSTTY_ACTION_PRESS, event: event)
         ghostty_surface_key(surface, keyEvent)
     }
