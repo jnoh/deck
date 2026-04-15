@@ -470,19 +470,11 @@ esac
         keyEvent.keycode = UInt32(event.keyCode)
         keyEvent.composing = false
 
-        // Set text — skip control chars and macOS private-use area (function/arrow keys)
-        if action == GHOSTTY_ACTION_PRESS, let chars = event.characters, chars.count > 0 {
-            if let scalar = chars.unicodeScalars.first {
-                if scalar.value >= 0x20 && scalar.value < 0xF700 {
-                    keyEvent.text = (chars as NSString).utf8String
-                } else if scalar.value < 0x20 {
-                    // Control character — get the unmodified version
-                    if let unmod = event.characters(byApplyingModifiers: event.modifierFlags.subtracting(.control)) {
-                        keyEvent.text = (unmod as NSString).utf8String
-                    }
-                }
-            }
-        }
+        // Don't set text here — ghostty generates text from the keycode.
+        // Setting text directly causes doubled characters in password prompts
+        // where both the key event text and ghostty's own text generation
+        // produce output. Only insertText (called by macOS input system)
+        // should send explicit text via ghostty_surface_text.
 
         // Unshifted codepoint for keyboard layout detection
         if event.type == .keyDown || event.type == .keyUp {
