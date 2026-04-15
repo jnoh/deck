@@ -118,56 +118,17 @@ public struct SidebarView: View {
 
     @ViewBuilder
     private func sessionContextMenu(_ session: Session) -> some View {
-        if session.state == .stopped {
-            Button("Start") {
-                NotificationCenter.default.post(
-                    name: .deckSessionAction,
-                    object: nil,
-                    userInfo: ["action": "start", "session": session.id]
-                )
-            }
-        }
-
-        if session.state == .running || session.state == .degraded {
-            Button("Stop") {
-                NotificationCenter.default.post(
-                    name: .deckSessionAction,
-                    object: nil,
-                    userInfo: ["action": "stop", "session": session.id]
-                )
-            }
-
-            Button("Restart") {
-                NotificationCenter.default.post(
-                    name: .deckSessionAction,
-                    object: nil,
-                    userInfo: ["action": "restart", "session": session.id]
-                )
-            }
-        }
-
-        Divider()
-
         Button("Rename") {
             renameText = session.displayName
             renamingSession = session
         }
 
-        Button("Edit Blueprint") {
-            if let filePath = session.config.filePath {
-                NSWorkspace.shared.open(filePath)
-            }
-        }
-        .disabled(session.config.filePath == nil)
-
-        if session.state == .stopped {
-            Button("Remove") {
-                NotificationCenter.default.post(
-                    name: .deckSessionAction,
-                    object: nil,
-                    userInfo: ["action": "remove", "session": session.id]
-                )
-            }
+        Button("Close", role: .destructive) {
+            NotificationCenter.default.post(
+                name: .deckSessionAction,
+                object: nil,
+                userInfo: ["action": "remove", "session": session.id]
+            )
         }
     }
 }
