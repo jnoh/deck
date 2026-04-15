@@ -25,6 +25,24 @@ struct MainView: View {
             if let id = newId, let session = coordinator.sessionManager.session(byId: id) {
                 session.status.clearAttention()
             }
+            // Focus the selected terminal view
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let window = NSApp.keyWindow {
+                    // Find the visible GhosttyTerminalNSView and focus it
+                    func findTerminalView(in view: NSView) -> GhosttyTerminalNSView? {
+                        if let tv = view as? GhosttyTerminalNSView, tv.alphaValue > 0, !tv.isHidden {
+                            return tv
+                        }
+                        for sub in view.subviews {
+                            if let found = findTerminalView(in: sub) { return found }
+                        }
+                        return nil
+                    }
+                    if let tv = findTerminalView(in: window.contentView!) {
+                        window.makeFirstResponder(tv)
+                    }
+                }
+            }
         }
         .frame(minWidth: 800, minHeight: 500)
         .onAppear {

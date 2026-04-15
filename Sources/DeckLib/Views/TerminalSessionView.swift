@@ -563,11 +563,9 @@ public struct TerminalSessionView: NSViewRepresentable {
     }
 
     public func updateNSView(_ nsView: GhosttyTerminalNSView, context: Context) {
-        DispatchQueue.main.async {
-            if nsView.window?.firstResponder !== nsView {
-                nsView.window?.makeFirstResponder(nsView)
-            }
-        }
+        // Only grab focus if this view is visible (opacity > 0 means it's the selected session)
+        // The ZStack keeps all terminal views alive — we must not let hidden ones steal focus
+    }
     }
 
     public static func dismantleNSView(_ nsView: GhosttyTerminalNSView, coordinator: ()) {
