@@ -45,14 +45,10 @@ if [ -d "$TEMPLATES_DIR" ]; then
     for template in "$TEMPLATES_DIR"/*.deck; do
         name=$(basename "$template")
         dest="$APPS_DIR/$name"
-        if [ ! -d "$dest" ]; then
-            echo "Installing template: $name"
-            cp -r "$template" "$dest"
-            # Make scripts executable
-            find "$dest" -name "*.sh" -exec chmod +x {} \;
-        else
-            echo "Template already exists: $name"
-        fi
+        echo "Installing template: $name"
+        rm -rf "$dest"
+        cp -r "$template" "$dest"
+        find "$dest" -name "*.sh" -exec chmod +x {} \;
     done
 fi
 
