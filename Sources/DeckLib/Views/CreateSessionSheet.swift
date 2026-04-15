@@ -6,7 +6,6 @@ public struct CreateSessionSheet: View {
     let onCreate: (String, String) -> Void  // (sessionName, workingDir)
     @Environment(\.dismiss) private var dismiss
 
-    @State private var sessionName: String = ""
     @State private var workingDir: String = ""
 
     public init(blueprint: SessionConfig, onCreate: @escaping (String, String) -> Void) {
@@ -16,10 +15,7 @@ public struct CreateSessionSheet: View {
 
     public var body: some View {
         VStack(spacing: 16) {
-            // Header
             HStack(spacing: 10) {
-                Text(blueprint.icon)
-                    .font(.system(size: 32))
                 VStack(alignment: .leading) {
                     Text("New \(blueprint.name) session")
                         .font(.headline)
@@ -34,13 +30,6 @@ public struct CreateSessionSheet: View {
 
             Divider()
 
-            // Session name
-            LabeledContent("Name") {
-                TextField("Session name", text: $sessionName)
-                    .textFieldStyle(.roundedBorder)
-            }
-
-            // Working directory
             LabeledContent("Directory") {
                 HStack {
                     TextField("~/projects/myapp", text: $workingDir)
@@ -56,7 +45,6 @@ public struct CreateSessionSheet: View {
 
             Divider()
 
-            // Actions
             HStack {
                 Button("Cancel") {
                     dismiss()
@@ -66,9 +54,8 @@ public struct CreateSessionSheet: View {
                 Spacer()
 
                 Button("Create") {
-                    let name = sessionName.isEmpty ? blueprint.name : sessionName
                     let dir = workingDir.isEmpty ? blueprint.startup.workingDir : workingDir
-                    onCreate(name, dir)
+                    onCreate(blueprint.name, dir)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -78,7 +65,6 @@ public struct CreateSessionSheet: View {
         .padding(20)
         .frame(width: 420)
         .onAppear {
-            sessionName = blueprint.name
             workingDir = blueprint.startup.workingDir
         }
     }
@@ -88,7 +74,7 @@ public struct CreateSessionSheet: View {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.message = "Choose a working directory for \(blueprint.name)"
+        panel.message = "Choose a working directory"
 
         if let expanded = expandTilde(workingDir) {
             panel.directoryURL = URL(fileURLWithPath: expanded)
