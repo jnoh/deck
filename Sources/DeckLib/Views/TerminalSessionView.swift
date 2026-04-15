@@ -551,18 +551,29 @@ esac
         var x = event.scrollingDeltaX
         var y = event.scrollingDeltaY
 
+        // Match official Ghostty: 2x for precise (trackpad), no multiplier for discrete
         if event.hasPreciseScrollingDeltas {
-            // Trackpad — scale up for smoother feel
             x *= 2
             y *= 2
-        } else {
-            // Mouse wheel — discrete steps, scale up significantly
-            x *= 10
-            y *= 10
         }
 
-        let precision: Int32 = event.hasPreciseScrollingDeltas ? 1 : 0
-        ghostty_surface_mouse_scroll(surface, x, y, precision)
+        // Build scroll mods as packed int matching Ghostty's mouse.zig:
+        // bit 0: precision (trackpad vs discrete)
+        // bits 1-2: momentum phase (0=none, 1=began, 2=stationary, 3=ended)
+        var mods: Int32 = 0
+        if event.hasPreciseScrollingDeltas {
+            mods |= 1  // precision bit
+        }
+        let momentum: Int32
+        switch event.momentumPhase {
+        case .began: momentum = 1
+        case .stationary: momentum = 2
+        case .ended, .cancelled: momentum = 3
+        default: momentum = 0
+        }
+        mods |= (momentum << 1)
+
+        ghostty_surface_mouse_scroll(surface, x, y, mods)
     }
 
     // MARK: - Exit Polling
