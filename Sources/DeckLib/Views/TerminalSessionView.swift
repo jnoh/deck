@@ -439,24 +439,34 @@ esac
         trackingArea = area
     }
 
+    private func sendMousePos(event: NSEvent) {
+        guard let surface = surface else { return }
+        var pt = convert(event.locationInWindow, from: nil)
+        // NSView with isFlipped=true: convert handles the flip, but ghostty
+        // expects pixel coordinates relative to the view's top-left
+        let scale = Double(window?.backingScaleFactor ?? 2.0)
+        ghostty_surface_mouse_pos(surface, pt.x * scale, pt.y * scale, translateMods(event.modifierFlags))
+    }
+
     override public func mouseDown(with event: NSEvent) {
         guard let surface = surface else { return }
+        sendMousePos(event: event)
         ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_PRESS, GHOSTTY_MOUSE_LEFT, translateMods(event.modifierFlags))
     }
 
     override public func mouseUp(with event: NSEvent) {
         guard let surface = surface else { return }
+        sendMousePos(event: event)
         ghostty_surface_mouse_button(surface, GHOSTTY_MOUSE_RELEASE, GHOSTTY_MOUSE_LEFT, translateMods(event.modifierFlags))
     }
 
     override public func mouseMoved(with event: NSEvent) {
-        guard let surface = surface else { return }
-        let pt = convert(event.locationInWindow, from: nil)
-        let scale = Double(window?.backingScaleFactor ?? 2.0)
-        ghostty_surface_mouse_pos(surface, pt.x * scale, pt.y * scale, translateMods(event.modifierFlags))
+        sendMousePos(event: event)
     }
 
-    override public func mouseDragged(with event: NSEvent) { mouseMoved(with: event) }
+    override public func mouseDragged(with event: NSEvent) {
+        sendMousePos(event: event)
+    }
 
     override public func scrollWheel(with event: NSEvent) {
         guard let surface = surface else { return }
