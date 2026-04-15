@@ -404,6 +404,13 @@ esac
     override public func keyDown(with event: NSEvent) {
         guard let surface = surface else { return }
 
+        // Let Cmd shortcuts go through the macOS responder chain
+        // (Cmd+C, Cmd+V, Cmd+Q, etc.)
+        if event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.control) {
+            super.keyDown(with: event)
+            return
+        }
+
         var keyEvent = ghostty_input_key_s()
         keyEvent.action = GHOSTTY_ACTION_PRESS
         keyEvent.mods = translateMods(event.modifierFlags)
