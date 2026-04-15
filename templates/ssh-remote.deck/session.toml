@@ -1,0 +1,8 @@
+[session]
+name = "ssh-remote"
+type = "local"
+icon = "🌐"
+description = "SSH into a remote host"
+
+[startup]
+working_dir = "~"
