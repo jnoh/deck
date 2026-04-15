@@ -1,0 +1,8 @@
+[session]
+name = "remote-claude"
+type = "local"
+icon = "🌐"
+description = "Claude Code on a remote host via SSH + tmux"
+
+[startup]
+working_dir = "~"
