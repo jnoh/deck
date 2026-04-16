@@ -116,7 +116,7 @@ if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
     tmux attach -t "$TMUX_SESSION"
 else
     tmux new-session -s "$TMUX_SESSION" \
-        "export PATH=/tmp/deck-bin-remote:\$PATH; cd '${REMOTE_DIR:-\$HOME}'; claude --settings /tmp/deck-hooks.json"
+        "export PATH=/tmp/deck-bin-remote:\$PATH; cd ${REMOTE_DIR:-\$HOME}; claude --settings /tmp/deck-hooks.json"
 fi
 STARTUP
 
@@ -133,7 +133,7 @@ POLLER_PID=$!
 # Step 3: Run interactively (reuses ControlMaster)
 ssh $SSH_OPTS -t "$SSH_DEST" \
     "export DECK_SESSION_ID='$DECK_SESSION_ID' DECK_STATUS_FILE='$REMOTE_STATUS'; \
-     cd '${REMOTE_DIR:-\$HOME}' 2>/dev/null; \
+     cd ${REMOTE_DIR:-\$HOME} 2>/dev/null; \
      /tmp/deck-start.sh"
 
 # Cleanup
