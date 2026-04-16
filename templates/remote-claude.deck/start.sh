@@ -133,7 +133,7 @@ STARTUP
             continue
         fi
         [ -n "$CONTENT" ] && echo "$CONTENT" >> "$LOCAL_STATUS"
-        sleep 1
+        sleep 0.1
     done
 ) &
 POLLER_PID=$!
