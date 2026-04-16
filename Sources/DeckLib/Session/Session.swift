@@ -125,6 +125,11 @@ public final class SessionManager: @unchecked Sendable {
         sessions.removeAll { $0.id == session.id }
     }
 
+    /// Move sessions for drag reordering
+    public func moveSessions(from source: IndexSet, to destination: Int) {
+        sessions.move(fromOffsets: source, toOffset: destination)
+    }
+
     public func session(byId id: String) -> Session? {
         sessions.first { $0.id == id }
     }

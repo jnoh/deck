@@ -21,43 +21,18 @@ public struct SidebarView: View {
 
     public var body: some View {
         List(selection: $selectedSessionId) {
-            if !sessionManager.runningSessions.isEmpty {
-                Section("Running") {
-                    ForEach(sessionManager.runningSessions) { session in
-                        sessionRow(session)
-                    }
-                }
-            }
-
-            if !sessionManager.degradedSessions.isEmpty {
-                Section("Degraded") {
-                    ForEach(sessionManager.degradedSessions) { session in
-                        sessionRow(session)
-                    }
-                }
-            }
-
-            if !sessionManager.startingSessions.isEmpty {
-                Section("Starting") {
-                    ForEach(sessionManager.startingSessions) { session in
-                        sessionRow(session)
-                    }
-                }
-            }
-
-            if !sessionManager.stoppedSessions.isEmpty {
-                Section("Stopped") {
-                    ForEach(sessionManager.stoppedSessions) { session in
-                        sessionRow(session)
-                    }
-                }
-            }
-
             if sessionManager.sessions.isEmpty {
                 ContentUnavailableView {
                     Label("No Sessions", systemImage: "terminal")
                 } description: {
                     Text("Click + to create a session.")
+                }
+            } else {
+                ForEach(sessionManager.sessions) { session in
+                    sessionRow(session)
+                }
+                .onMove { source, destination in
+                    sessionManager.moveSessions(from: source, to: destination)
                 }
             }
         }
