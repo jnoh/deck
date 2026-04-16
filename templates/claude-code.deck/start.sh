@@ -1,9 +1,10 @@
 #!/bin/bash
 # Claude Code session with Deck status integration
 
-# If a project was selected, cd into it
+# If a project was selected, cd into it and set the title
 if [ -n "$PROJECT" ] && [ -d "$PROJECT" ]; then
     cd "$PROJECT"
+    deck title "$(basename "$PROJECT")"
 fi
 
 deck status --state starting --desc "Launching Claude Code"

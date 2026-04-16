@@ -3,8 +3,8 @@
 
 TITLE_FLAG="/tmp/deck-title-${DECK_SESSION_ID}"
 
-# Read stdin with timeout (Claude sends hook data as JSON)
-INPUT=$(timeout 2 cat 2>/dev/null || true)
+# Read stdin (Claude sends hook data as JSON)
+INPUT=$(cat)
 
 # Set title from first prompt only
 if [ ! -f "$TITLE_FLAG" ] && [ -n "$INPUT" ]; then
@@ -14,7 +14,9 @@ if [ ! -f "$TITLE_FLAG" ] && [ -n "$INPUT" ]; then
 import sys, json
 try:
     d = json.load(sys.stdin)
-    print(d.get('prompt', '')[:50])
+    p = d.get('prompt', '')
+    if p:
+        print(p[:50])
 except:
     pass
 " 2>/dev/null)
