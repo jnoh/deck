@@ -117,18 +117,8 @@ else
 fi
 STARTUP
 
-# Step 2: Background poller — syncs remote status to local
-(
-    while true; do
-        CONTENT=$(ssh $SSH_OPTS "$SSH_DEST" "cat '$REMOTE_STATUS' 2>/dev/null && rm -f '$REMOTE_STATUS'" 2>/dev/null)
-        if [ $? -ne 0 ]; then
-            sleep 5
-            continue
-        fi
-        [ -n "$CONTENT" ] && echo "$CONTENT" >> "$LOCAL_STATUS"
-        sleep 0.1
-    done
-) &
+# Step 2: Stream remote status to local via persistent SSH
+ssh $SSH_OPTS "$SSH_DEST" "touch '$REMOTE_STATUS'; tail -f '$REMOTE_STATUS'" >> "$LOCAL_STATUS" 2>/dev/null &
 POLLER_PID=$!
 
 # Step 3: Run interactively
