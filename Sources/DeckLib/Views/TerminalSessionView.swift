@@ -162,9 +162,7 @@ public class GhosttyTerminalNSView: NSView {
     nonisolated(unsafe) var onProcessExit: ((Int32?) -> Void)?
     nonisolated(unsafe) var session: Session?
     nonisolated(unsafe) private var exitPollTimer: Timer?
-    nonisolated(unsafe) private var statusSource: DispatchSourceFileSystemObject?
-    nonisolated(unsafe) private var statusFileDescriptor: Int32 = -1
-    nonisolated(unsafe) private var statusReadOffset: UInt64 = 0
+    nonisolated(unsafe) private var statusPollTimer: Timer?
 
     override public var acceptsFirstResponder: Bool { true }
 
@@ -351,14 +349,14 @@ esac
 
         updateTrackingAreas()
         startExitPolling()
-        startStatusWatching()
+        startStatusPolling()
     }
 
     public func destroySurface() {
         exitPollTimer?.invalidate()
         exitPollTimer = nil
-        statusSource?.cancel()
-        statusSource = nil
+        statusPollTimer?.invalidate()
+        statusPollTimer = nil
         GhosttyService.shared.unregisterSurface(self)
         if let surface = surface {
             ghostty_surface_free(surface)
@@ -659,68 +657,42 @@ esac
         }
     }
 
-    // MARK: - Status Watching
+    // MARK: - Status Polling
 
-    private func startStatusWatching() {
+    private func startStatusPolling() {
         guard let session = session else { return }
         let statusPath = GhosttyService.statusFilePath(for: session.id)
 
-        // Create the file if it doesn't exist so we can open a descriptor
-        if !FileManager.default.fileExists(atPath: statusPath) {
-            FileManager.default.createFile(atPath: statusPath, contents: nil)
-        }
-
-        let fd = open(statusPath, O_RDONLY | O_EVTONLY)
-        guard fd >= 0 else { return }
-        statusFileDescriptor = fd
-
-        let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
-            eventMask: [.write, .extend],
-            queue: .global(qos: .userInitiated)
-        )
-
-        source.setEventHandler { [weak self] in
-            self?.processStatusFile(path: statusPath, session: session)
-        }
-
-        source.setCancelHandler {
-            close(fd)
-        }
-
-        statusSource = source
-        source.resume()
-    }
-
-    private func processStatusFile(path: String, session: Session) {
-        guard let handle = FileHandle(forReadingAtPath: path) else { return }
-        defer { handle.closeFile() }
-
-        handle.seek(toFileOffset: statusReadOffset)
-        let data = handle.readDataToEndOfFile()
-        guard !data.isEmpty,
-              let content = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !content.isEmpty else {
-            return
-        }
-        statusReadOffset += UInt64(data.count)
-
-        let lines = content.components(separatedBy: "\n").filter { !$0.isEmpty }
-        var shouldExit = false
-        DispatchQueue.main.async { [weak self] in
-            for line in lines {
-                if let update = StatusUpdate.parse(json: line) {
-                    if update.type == .exit {
-                        shouldExit = true
-                        continue
-                    }
-                    if let newTitle = session.status.apply(update, sessionName: session.displayName) {
-                        session.displayName = newTitle
+        statusPollTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
+            guard let self = self, self.session != nil else {
+                timer.invalidate()
+                return
+            }
+            guard let data = FileManager.default.contents(atPath: statusPath),
+                  let content = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !content.isEmpty else {
+                return
+            }
+            // Remove the file so we don't re-process it
+            try? FileManager.default.removeItem(atPath: statusPath)
+            // Process each line as a separate JSON update
+            let lines = content.components(separatedBy: "\n").filter { !$0.isEmpty }
+            var shouldExit = false
+            DispatchQueue.main.async { [weak self] in
+                for line in lines {
+                    if let update = StatusUpdate.parse(json: line) {
+                        if update.type == .exit {
+                            shouldExit = true
+                            continue
+                        }
+                        if let newTitle = session.status.apply(update, sessionName: session.displayName) {
+                            session.displayName = newTitle
+                        }
                     }
                 }
-            }
-            if shouldExit {
-                self?.onProcessExit?(0)
+                if shouldExit {
+                    self?.onProcessExit?(0)
+                }
             }
         }
     }
