@@ -12,18 +12,20 @@ deck status --state starting --desc "Launching Claude Code"
 HOOK_DIR="${DECK_PACKAGE_DIR}/hooks"
 
 # Hook mapping:
-#   UserPromptSubmit  → user sent a prompt, Claude is now working (+ title from first prompt)
+#   SessionStart      → Claude ready, waiting for first prompt
+#   UserPromptSubmit  → user sent a prompt, Claude is now working
 #   PostToolUse       → Claude used a tool, still working
 #   Stop              → Claude finished responding, YOUR TURN
+#   StopFailure       → turn failed (API error etc), YOUR TURN
 #   PermissionRequest → Claude is asking for tool permission, YOUR TURN
-#   SessionStart      → session connected
 HOOKS=$(cat <<EOF
 {"hooks":{
+  "SessionStart":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc 'Your turn'"}]}],
   "UserPromptSubmit":[{"hooks":[{"type":"command","command":"$HOOK_DIR/on-prompt.sh"}]}],
   "PostToolUse":[{"hooks":[{"type":"command","command":"deck status --state working --desc Working"}]}],
   "Stop":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc 'Your turn'"}]}],
-  "PermissionRequest":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc 'Needs approval'"}]}],
-  "SessionStart":[{"hooks":[{"type":"command","command":"deck status --state connected --desc Connected"}]}]
+  "StopFailure":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc 'Error — your turn'"}]}],
+  "PermissionRequest":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc 'Needs approval'"}]}]
 }}
 EOF
 )
