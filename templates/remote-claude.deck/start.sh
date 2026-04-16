@@ -113,11 +113,14 @@ cat > /tmp/deck-hooks.json << 'HOOKSJSON'
 HOOKSJSON
 
 if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
-    tmux attach -t "$TMUX_SESSION"
-else
-    tmux new-session -s "$TMUX_SESSION" \
-        "export PATH=/tmp/deck-bin-remote:\$PATH; cd ${REMOTE_DIR:-\$HOME}; claude --settings /tmp/deck-hooks.json"
+    exec tmux attach -t "$TMUX_SESSION"
 fi
+
+tmux new-session -d -s "$TMUX_SESSION"
+tmux send-keys -t "$TMUX_SESSION" "export PATH=/tmp/deck-bin-remote:\$PATH" Enter
+tmux send-keys -t "$TMUX_SESSION" "cd ${REMOTE_DIR:-\$HOME}" Enter
+tmux send-keys -t "$TMUX_SESSION" "claude --settings /tmp/deck-hooks.json" Enter
+exec tmux attach -t "$TMUX_SESSION"
 STARTUP
 
 # Step 2: Background poller — syncs remote status to local
