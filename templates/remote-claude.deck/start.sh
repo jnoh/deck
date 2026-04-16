@@ -13,7 +13,7 @@ deck title "$SSH_HOST"
 deck status --state starting --desc "Connecting to $SSH_HOST"
 
 # Step 1a: Write deck CLI to remote (establishes ControlMaster, prompts password)
-ssh $SSH_OPTS "$SSH_DEST" "mkdir -p /tmp/deck-bin-remote && cat > /tmp/deck-bin-remote/deck && chmod +x /tmp/deck-bin-remote/deck" <<DECK_CLI
+ssh $SSH_OPTS "$SSH_DEST" "mkdir -p /tmp/deck-bin-${DECK_SESSION_ID} && cat > /tmp/deck-bin-${DECK_SESSION_ID}/deck && chmod +x /tmp/deck-bin-${DECK_SESSION_ID}/deck" <<DECK_CLI
 #!/bin/sh
 _q='"'
 _cmd="\$1"; shift
@@ -36,7 +36,7 @@ esac
 DECK_CLI
 
 # Step 1b: Write update-status hook
-ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-update-status.sh && chmod +x /tmp/deck-update-status.sh" <<UPDATE_STATUS
+ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-update-status-${DECK_SESSION_ID}.sh && chmod +x /tmp/deck-update-status-${DECK_SESSION_ID}.sh" <<UPDATE_STATUS
 #!/bin/bash
 STATE="\$1"
 INPUT=\$(cat)
@@ -75,7 +75,7 @@ deck status --state "\$STATE" --desc "\$DESC"
 UPDATE_STATUS
 
 # Step 1c: Write on-prompt hook
-ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-on-prompt.sh && chmod +x /tmp/deck-on-prompt.sh" <<ON_PROMPT
+ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-on-prompt-${DECK_SESSION_ID}.sh && chmod +x /tmp/deck-on-prompt-${DECK_SESSION_ID}.sh" <<ON_PROMPT
 #!/bin/bash
 TITLE_FLAG="/tmp/deck-title-${DECK_SESSION_ID}"
 INPUT=\$(cat)
@@ -92,28 +92,28 @@ except: pass
 " 2>/dev/null)
     [ -n "\$PROMPT" ] && deck title "\$PROMPT"
 fi
-echo "\$INPUT" | /tmp/deck-update-status.sh working
+echo "\$INPUT" | /tmp/deck-update-status-${DECK_SESSION_ID}.sh working
 ON_PROMPT
 
 # Step 1d: Write startup script
-ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-start.sh && chmod +x /tmp/deck-start.sh" <<STARTUP
+ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-start-${DECK_SESSION_ID}.sh && chmod +x /tmp/deck-start-${DECK_SESSION_ID}.sh" <<STARTUP
 #!/bin/bash
-export PATH="/tmp/deck-bin-remote:\$PATH"
+export PATH="/tmp/deck-bin-${DECK_SESSION_ID}:\$PATH"
 export DECK_SESSION_ID="$DECK_SESSION_ID"
 export DECK_STATUS_FILE="$REMOTE_STATUS"
 
 if ! command -v tmux &>/dev/null; then echo "Error: tmux not installed."; exec bash -l; fi
 if ! command -v claude &>/dev/null; then echo "Error: claude not installed."; exec bash -l; fi
 
-cat > /tmp/deck-hooks.json << 'HOOKSJSON'
-{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh working"}]}],"Stop":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-approval"}]}]}}
+cat > /tmp/deck-hooks-${DECK_SESSION_ID}.json << 'HOOKSJSON'
+{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status-${DECK_SESSION_ID}.sh needs-input"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt-${DECK_SESSION_ID}.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status-${DECK_SESSION_ID}.sh working"}]}],"Stop":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status-${DECK_SESSION_ID}.sh needs-input"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status-${DECK_SESSION_ID}.sh needs-input"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status-${DECK_SESSION_ID}.sh needs-approval"}]}]}}
 HOOKSJSON
 
 if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
     tmux attach -t "$TMUX_SESSION"
 else
     tmux new-session -s "$TMUX_SESSION" \
-        "export PATH=/tmp/deck-bin-remote:\$PATH; cd ${REMOTE_DIR:-\$HOME}; claude --settings /tmp/deck-hooks.json"
+        "export PATH=/tmp/deck-bin-${DECK_SESSION_ID}:\$PATH; cd ${REMOTE_DIR:-\$HOME}; claude --settings /tmp/deck-hooks-${DECK_SESSION_ID}.json"
 fi
 STARTUP
 
@@ -134,7 +134,7 @@ POLLER_PID=$!
 # Step 3: Run interactively
 ssh $SSH_OPTS -t "$SSH_DEST" \
     "cd ${REMOTE_DIR:-\$HOME} 2>/dev/null; \
-     /tmp/deck-start.sh"
+     /tmp/deck-start-${DECK_SESSION_ID}.sh"
 
 # Cleanup
 kill $POLLER_PID 2>/dev/null
