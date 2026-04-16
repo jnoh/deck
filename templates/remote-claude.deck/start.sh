@@ -66,7 +66,7 @@ if ! command -v claude &>/dev/null; then echo "Error: claude not installed."; ex
 
 # Write hooks to a file — avoids all quoting issues with tmux/ssh
 cat > /tmp/deck-hooks.json << 'HOOKSJSON'
-{"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"deck status --state working --desc Working"}]}],"Stop":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"SessionStart":[{"hooks":[{"type":"command","command":"deck status --state connected --desc Connected"}]}]}}
+{"hooks":{"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"deck status --state working --desc Working"}]}],"Stop":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Needs_approval"}]}],"SessionStart":[{"hooks":[{"type":"command","command":"deck status --state connected --desc Connected"}]}]}}
 HOOKSJSON
 
 if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then

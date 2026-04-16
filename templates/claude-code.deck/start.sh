@@ -12,15 +12,17 @@ deck status --state starting --desc "Launching Claude Code"
 HOOK_DIR="${DECK_PACKAGE_DIR}/hooks"
 
 # Hook mapping:
-#   UserPromptSubmit → user sent a prompt, Claude is now working (+ title from first prompt)
-#   PostToolUse      → Claude used a tool, still working
-#   Stop             → Claude finished responding, YOUR TURN (triggers macOS notification)
-#   SessionStart     → session connected
+#   UserPromptSubmit  → user sent a prompt, Claude is now working (+ title from first prompt)
+#   PostToolUse       → Claude used a tool, still working
+#   Stop              → Claude finished responding, YOUR TURN
+#   PermissionRequest → Claude is asking for tool permission, YOUR TURN
+#   SessionStart      → session connected
 HOOKS=$(cat <<EOF
 {"hooks":{
   "UserPromptSubmit":[{"hooks":[{"type":"command","command":"$HOOK_DIR/on-prompt.sh"}]}],
   "PostToolUse":[{"hooks":[{"type":"command","command":"deck status --state working --desc Working"}]}],
   "Stop":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc 'Your turn'"}]}],
+  "PermissionRequest":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc 'Needs approval'"}]}],
   "SessionStart":[{"hooks":[{"type":"command","command":"deck status --state connected --desc Connected"}]}]
 }}
 EOF
