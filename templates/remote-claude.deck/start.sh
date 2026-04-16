@@ -35,13 +35,12 @@ esac
 /bin/echo "\$_json" >> "$REMOTE_STATUS"
 DECK_CLI
 
-# Step 1b: Write update-status hook (reuses ControlMaster, no password)
+# Step 1b: Write update-status hook
 ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-update-status.sh && chmod +x /tmp/deck-update-status.sh" <<UPDATE_STATUS
 #!/bin/bash
 STATE="\$1"
 INPUT=\$(cat)
 
-# Get transcript path from hook stdin
 TRANSCRIPT=\$(echo "\$INPUT" | python3 -c "
 import sys, json
 try:
@@ -50,7 +49,6 @@ try:
 except: pass
 " 2>/dev/null)
 
-# Sum tokens from transcript
 TOKENS=""
 if [ -n "\$TRANSCRIPT" ] && [ -f "\$TRANSCRIPT" ]; then
     TOKENS=\$(python3 -c "
@@ -76,7 +74,7 @@ DESC="${SSH_HOST}"
 deck status --state "\$STATE" --desc "\$DESC"
 UPDATE_STATUS
 
-# Step 1c: Write on-prompt hook (reuses ControlMaster)
+# Step 1c: Write on-prompt hook
 ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-on-prompt.sh && chmod +x /tmp/deck-on-prompt.sh" <<ON_PROMPT
 #!/bin/bash
 TITLE_FLAG="/tmp/deck-title-${DECK_SESSION_ID}"
@@ -97,7 +95,7 @@ fi
 echo "\$INPUT" | /tmp/deck-update-status.sh working
 ON_PROMPT
 
-# Step 1c: Write startup script (reuses ControlMaster)
+# Step 1d: Write startup script
 ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-start.sh && chmod +x /tmp/deck-start.sh" <<STARTUP
 #!/bin/bash
 export PATH="/tmp/deck-bin-remote:\$PATH"
@@ -107,20 +105,16 @@ export DECK_STATUS_FILE="$REMOTE_STATUS"
 if ! command -v tmux &>/dev/null; then echo "Error: tmux not installed."; exec bash -l; fi
 if ! command -v claude &>/dev/null; then echo "Error: claude not installed."; exec bash -l; fi
 
-# Write hooks to a file — avoids all quoting issues with tmux/ssh
 cat > /tmp/deck-hooks.json << 'HOOKSJSON'
 {"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh working"}]}],"Stop":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-approval"}]}]}}
 HOOKSJSON
 
 if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
-    exec tmux attach -t "$TMUX_SESSION"
+    tmux attach -t "$TMUX_SESSION"
+else
+    tmux new-session -s "$TMUX_SESSION" \
+        "export PATH=/tmp/deck-bin-remote:\$PATH; cd ${REMOTE_DIR:-\$HOME}; claude --settings /tmp/deck-hooks.json"
 fi
-
-tmux new-session -d -s "$TMUX_SESSION"
-tmux send-keys -t "$TMUX_SESSION" "export PATH=/tmp/deck-bin-remote:\$PATH" Enter
-tmux send-keys -t "$TMUX_SESSION" "cd ${REMOTE_DIR:-\$HOME}" Enter
-tmux send-keys -t "$TMUX_SESSION" "claude --settings /tmp/deck-hooks.json" Enter
-exec tmux attach -t "$TMUX_SESSION"
 STARTUP
 
 # Step 2: Background poller — syncs remote status to local
@@ -128,7 +122,6 @@ STARTUP
     while true; do
         CONTENT=$(ssh $SSH_OPTS "$SSH_DEST" "cat '$REMOTE_STATUS' 2>/dev/null && rm -f '$REMOTE_STATUS'" 2>/dev/null)
         if [ $? -ne 0 ]; then
-            # SSH failed — back off to avoid hammering
             sleep 5
             continue
         fi
@@ -138,10 +131,9 @@ STARTUP
 ) &
 POLLER_PID=$!
 
-# Step 3: Run interactively (reuses ControlMaster)
+# Step 3: Run interactively
 ssh $SSH_OPTS -t "$SSH_DEST" \
-    "export DECK_SESSION_ID='$DECK_SESSION_ID' DECK_STATUS_FILE='$REMOTE_STATUS'; \
-     cd ${REMOTE_DIR:-\$HOME} 2>/dev/null; \
+    "cd ${REMOTE_DIR:-\$HOME} 2>/dev/null; \
      /tmp/deck-start.sh"
 
 # Cleanup
