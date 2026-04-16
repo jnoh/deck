@@ -201,9 +201,15 @@ struct ConfigLoaderTests {
         type = "local"
         """
 
-        try toml1.write(to: tmpDir.appendingPathComponent("alpha.toml"), atomically: true, encoding: .utf8)
-        try toml2.write(to: tmpDir.appendingPathComponent("beta.toml"), atomically: true, encoding: .utf8)
-        // non-toml file should be ignored
+        let alphaDir = tmpDir.appendingPathComponent("alpha.deck")
+        try FileManager.default.createDirectory(at: alphaDir, withIntermediateDirectories: true)
+        try toml1.write(to: alphaDir.appendingPathComponent("session.toml"), atomically: true, encoding: .utf8)
+
+        let betaDir = tmpDir.appendingPathComponent("beta.deck")
+        try FileManager.default.createDirectory(at: betaDir, withIntermediateDirectories: true)
+        try toml2.write(to: betaDir.appendingPathComponent("session.toml"), atomically: true, encoding: .utf8)
+
+        // non-.deck items should be ignored
         try "not a config".write(to: tmpDir.appendingPathComponent("readme.txt"), atomically: true, encoding: .utf8)
 
         let configs = try ConfigLoader.loadAll(from: tmpDir)

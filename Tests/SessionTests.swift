@@ -195,17 +195,21 @@ struct SessionManagerTests {
         try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmpDir) }
 
+        let betaDir = tmpDir.appendingPathComponent("beta.deck")
+        try FileManager.default.createDirectory(at: betaDir, withIntermediateDirectories: true)
         try """
         [session]
         name = "beta"
         type = "local"
-        """.write(to: tmpDir.appendingPathComponent("beta.toml"), atomically: true, encoding: .utf8)
+        """.write(to: betaDir.appendingPathComponent("session.toml"), atomically: true, encoding: .utf8)
 
+        let alphaDir = tmpDir.appendingPathComponent("alpha.deck")
+        try FileManager.default.createDirectory(at: alphaDir, withIntermediateDirectories: true)
         try """
         [session]
         name = "alpha"
         type = "local"
-        """.write(to: tmpDir.appendingPathComponent("alpha.toml"), atomically: true, encoding: .utf8)
+        """.write(to: alphaDir.appendingPathComponent("session.toml"), atomically: true, encoding: .utf8)
 
         let manager = SessionManager()
         try manager.loadBlueprints(from: tmpDir)
@@ -312,11 +316,13 @@ struct SessionManagerTests {
         try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmpDir) }
 
+        let targetDir = tmpDir.appendingPathComponent("target.deck")
+        try FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
         try """
         [session]
         name = "target"
         type = "local"
-        """.write(to: tmpDir.appendingPathComponent("target.toml"), atomically: true, encoding: .utf8)
+        """.write(to: targetDir.appendingPathComponent("session.toml"), atomically: true, encoding: .utf8)
 
         let manager = SessionManager()
         try manager.loadBlueprints(from: tmpDir)
