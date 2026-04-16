@@ -34,8 +34,6 @@ for line in open(sys.argv[1]):
         if u:
             total += u.get('input_tokens', 0)
             total += u.get('output_tokens', 0)
-            total += u.get('cache_read_input_tokens', 0)
-            total += u.get('cache_creation_input_tokens', 0)
     except:
         pass
 if total >= 1000000:
