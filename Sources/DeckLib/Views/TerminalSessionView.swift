@@ -86,8 +86,16 @@ public final class GhosttyService: @unchecked Sendable {
         rt.userdata = Unmanaged.passUnretained(self).toOpaque()
         rt.supports_selection_clipboard = false
 
-        // Wakeup: no-op, rendering is driven by the surface/Metal layer
-        rt.wakeup_cb = { _ in }
+        // Wakeup: ghostty calls this when it has work queued in its mailbox.
+        // We must call ghostty_app_tick on the main thread to process it.
+        rt.wakeup_cb = { userdata in
+            guard let userdata = userdata else { return }
+            let service = Unmanaged<GhosttyService>.fromOpaque(userdata).takeUnretainedValue()
+            DispatchQueue.main.async {
+                guard let app = service.app else { return }
+                ghostty_app_tick(app)
+            }
+        }
 
         // Action callback: intercept ALL actions, don't let ghostty handle any.
         // Returning true = "I handled it" which prevents ghostty from doing its own thing
