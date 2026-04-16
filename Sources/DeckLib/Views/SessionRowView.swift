@@ -65,7 +65,7 @@ public struct SessionRowView: View {
     private func colorForCustomState(_ state: String) -> Color {
         switch state {
         case "working", "starting", "connected", "idle":
-            return .blue
+            return .white
         case "needs-input":
             return .orange
         case "error":
