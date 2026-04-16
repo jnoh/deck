@@ -53,7 +53,10 @@ public struct CreateSessionSheet: View {
             }
 
             // Directory picker — hide if template has its own directory param
-            if !blueprint.params.contains(where: { $0.key.lowercased().contains("dir") }) {
+            if !blueprint.params.contains(where: {
+                let k = $0.key.lowercased()
+                return k.contains("dir") || k.contains("project") || k.contains("path")
+            }) {
                 LabeledContent("Directory") {
                     HStack {
                         TextField("~/projects/myapp", text: $workingDir)
