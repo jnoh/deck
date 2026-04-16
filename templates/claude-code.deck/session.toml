@@ -6,3 +6,10 @@ description = "Claude Code agent"
 
 [startup]
 working_dir = "~"
+
+[[params]]
+key = "PROJECT"
+label = "Project"
+type = "select"
+source = "./list-projects.sh"
+required = true

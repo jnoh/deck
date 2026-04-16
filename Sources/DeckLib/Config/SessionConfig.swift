@@ -148,7 +148,10 @@ public struct SessionParam: Codable, Sendable {
     public var placeholder: String?
     public var `default`: String?
     public var required: Bool?
+    public var type: String?      // "text" (default) | "select"
+    public var source: String?    // shell command → JSON array of {value, label}
 
+    public var isSelect: Bool { type == "select" }
     public var isRequired: Bool { `required` ?? false }
     public var defaultValue: String { `default` ?? "" }
 }

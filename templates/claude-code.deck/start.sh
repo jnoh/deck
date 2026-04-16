@@ -1,6 +1,11 @@
 #!/bin/bash
 # Claude Code session with Deck status integration
 
+# If a project was selected, cd into it
+if [ -n "$PROJECT" ] && [ -d "$PROJECT" ]; then
+    cd "$PROJECT"
+fi
+
 deck status --state starting --desc "Launching Claude Code"
 
 HOOK_DIR="${DECK_PACKAGE_DIR}/hooks"
