@@ -30,17 +30,6 @@ public struct SessionRowView: View {
 
             Spacer()
 
-            // Notification badge
-            if session.status.notificationCount > 0 {
-                Text("\(session.status.notificationCount)")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(.red))
-            }
-
             statusDot
         }
         .padding(.vertical, 2)
@@ -49,14 +38,16 @@ public struct SessionRowView: View {
     @ViewBuilder
     private var statusDot: some View {
         if let customState = session.status.customState {
-            // Dynamic status from program
+            let dotColor = colorForCustomState(customState)
+            let isBusy = customState == "working" || customState == "starting"
+                || customState == "connected" || customState == "idle"
             Circle()
-                .fill(colorForCustomState(customState))
+                .fill(dotColor)
                 .frame(width: 10, height: 10)
                 .overlay {
-                    if customState == "working" {
+                    if isBusy {
                         Circle()
-                            .fill(colorForCustomState(customState))
+                            .fill(dotColor)
                             .frame(width: 10, height: 10)
                             .opacity(0.5)
                             .scaleEffect(1.5)
@@ -73,12 +64,14 @@ public struct SessionRowView: View {
 
     private func colorForCustomState(_ state: String) -> Color {
         switch state {
-        case "working": return .green
-        case "idle": return .green
-        case "needs-input": return .yellow
-        case "error": return .red
-        case "connected": return .blue
-        default: return .gray
+        case "working", "starting", "connected", "idle":
+            return .blue
+        case "needs-input":
+            return .orange
+        case "error":
+            return .red
+        default:
+            return .gray
         }
     }
 }

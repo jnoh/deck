@@ -1,7 +1,8 @@
 #!/bin/bash
-# Called on UserPromptSubmit — sets title from first prompt, marks working
+# Called on UserPromptSubmit — sets title from first prompt, updates status
 
 TITLE_FLAG="/tmp/deck-title-${DECK_SESSION_ID}"
+HOOK_DIR="${DECK_PACKAGE_DIR}/hooks"
 
 # Read stdin (Claude sends hook data as JSON)
 INPUT=$(cat)
@@ -26,4 +27,4 @@ except:
     fi
 fi
 
-deck status --state working --desc "Processing prompt"
+echo "$INPUT" | "$HOOK_DIR/update-status.sh" working
