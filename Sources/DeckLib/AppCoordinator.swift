@@ -147,6 +147,23 @@ public final class AppCoordinator: @unchecked Sendable {
         }
     }
 
+    public func forceKillSession(_ session: Session) {
+        healthMonitor.stopMonitoring(name: session.id)
+        remoteRunners.removeValue(forKey: session.id)
+
+        // Find the terminal view and destroy its surface (kills the PTY and child processes)
+        if let view = GhosttyService.shared.terminalView(forSessionId: session.id) {
+            view.destroySurface()
+        }
+
+        // Force state to stopped regardless of current state
+        session.forceState(.stopped)
+        sessionManager.removeSession(session)
+        if selectedSessionId == session.id {
+            selectedSessionId = nil
+        }
+    }
+
     // MARK: - Private
 
     private func handleAction(_ action: String, sessionId: String) {
@@ -156,6 +173,7 @@ public final class AppCoordinator: @unchecked Sendable {
         case "stop": stopSession(session)
         case "restart": restartSession(session)
         case "remove": removeSession(session)
+        case "force-kill": forceKillSession(session)
         default: break
         }
     }

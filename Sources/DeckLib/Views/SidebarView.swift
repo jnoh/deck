@@ -123,6 +123,16 @@ public struct SidebarView: View {
             renamingSession = session
         }
 
+        if session.state != .stopped {
+            Button("Force Kill", role: .destructive) {
+                NotificationCenter.default.post(
+                    name: .deckSessionAction,
+                    object: nil,
+                    userInfo: ["action": "force-kill", "session": session.id]
+                )
+            }
+        }
+
         Button("Close", role: .destructive) {
             NotificationCenter.default.post(
                 name: .deckSessionAction,
