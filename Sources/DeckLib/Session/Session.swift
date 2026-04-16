@@ -77,8 +77,8 @@ public final class Session: Identifiable, @unchecked Sendable {
         self.instanceNumber = instanceNumber
         self.config = config
         self.displayName = instanceNumber == 1
-            ? config.name
-            : "\(config.name) (\(instanceNumber))"
+            ? config.displayName
+            : "\(config.displayName) (\(instanceNumber))"
     }
 
     public func transitionTo(_ newState: SessionState) throws {

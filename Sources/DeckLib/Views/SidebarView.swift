@@ -50,7 +50,7 @@ public struct SidebarView: View {
                                 blueprintForSheet = blueprint
                             } label: {
                                 Label(
-                                    "\(blueprint.icon) \(blueprint.name)",
+                                    "\(blueprint.icon) \(blueprint.displayName)",
                                     systemImage: blueprint.type == .local ? "terminal" : "network"
                                 )
                             }

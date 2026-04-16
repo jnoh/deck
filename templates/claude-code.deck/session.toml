@@ -1,5 +1,6 @@
 [session]
 name = "claude-code"
+display_name = "Claude Code"
 type = "local"
 icon = "🤖"
 description = "Claude Code agent"

@@ -138,6 +138,7 @@ private struct SessionSection: Codable {
     let type: String
     var icon: String?
     var description: String?
+    var display_name: String?
 }
 
 // MARK: - Session Parameter (user-configurable form field)
@@ -171,6 +172,7 @@ private struct RawSessionConfig: Codable {
 
 public struct SessionConfig: Sendable {
     public let name: String
+    public let displayName: String
     public let type: SessionType
     public let icon: String
     public let description: String
@@ -229,6 +231,7 @@ public struct SessionConfig: Sendable {
 
         return SessionConfig(
             name: raw.session.name,
+            displayName: raw.session.display_name ?? raw.session.name,
             type: sessionType,
             icon: raw.session.icon ?? "▸",
             description: raw.session.description ?? "",

@@ -1,5 +1,6 @@
 [session]
 name = "ssh-remote"
+display_name = "SSH"
 type = "local"
 icon = "🌐"
 description = "SSH into a remote host"

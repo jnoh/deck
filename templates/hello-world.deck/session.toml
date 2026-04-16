@@ -1,5 +1,6 @@
 [session]
 name = "hello-world"
+display_name = "Shell"
 type = "local"
 icon = "👋"
 description = "Simple shell session"

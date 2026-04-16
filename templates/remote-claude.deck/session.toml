@@ -1,5 +1,6 @@
 [session]
 name = "remote-claude"
+display_name = "Remote Claude"
 type = "local"
 icon = "🌐"
 description = "Claude Code on a remote host via SSH + tmux"

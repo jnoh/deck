@@ -25,7 +25,7 @@ public struct CreateSessionSheet: View {
         VStack(spacing: 16) {
             HStack(spacing: 10) {
                 VStack(alignment: .leading) {
-                    Text("New \(blueprint.name) session")
+                    Text("New \(blueprint.displayName) session")
                         .font(.headline)
                     if !blueprint.description.isEmpty {
                         Text(blueprint.description)
