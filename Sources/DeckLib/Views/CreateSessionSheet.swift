@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 
 // MARK: - Select param loading state
 
@@ -11,14 +10,13 @@ private enum SelectState {
 
 public struct CreateSessionSheet: View {
     let blueprint: SessionConfig
-    let onCreate: (String, String, [String: String]) -> Void  // (name, workingDir, params)
+    let onCreate: (String, [String: String]) -> Void  // (name, params)
     @Environment(\.dismiss) private var dismiss
 
-    @State private var workingDir: String = ""
     @State private var paramValues: [String: String] = [:]
     @State private var selectStates: [String: SelectState] = [:]
 
-    public init(blueprint: SessionConfig, onCreate: @escaping (String, String, [String: String]) -> Void) {
+    public init(blueprint: SessionConfig, onCreate: @escaping (String, [String: String]) -> Void) {
         self.blueprint = blueprint
         self.onCreate = onCreate
     }
@@ -52,25 +50,6 @@ public struct CreateSessionSheet: View {
                 }
             }
 
-            // Directory picker — hide if template has its own directory param
-            if !blueprint.params.contains(where: {
-                let k = $0.key.lowercased()
-                return k.contains("dir") || k.contains("project") || k.contains("path")
-            }) {
-                LabeledContent("Directory") {
-                    HStack {
-                        TextField("~/projects/myapp", text: $workingDir)
-                            .textFieldStyle(.roundedBorder)
-
-                        if blueprint.type == .local {
-                            Button("Browse...") {
-                                browseDirectory()
-                            }
-                        }
-                    }
-                }
-            }
-
             Divider()
 
             HStack {
@@ -82,8 +61,7 @@ public struct CreateSessionSheet: View {
                 Spacer()
 
                 Button("Create") {
-                    let dir = workingDir.isEmpty ? blueprint.startup.workingDir : workingDir
-                    onCreate(blueprint.name, dir, paramValues)
+                    onCreate(blueprint.name, paramValues)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -94,7 +72,6 @@ public struct CreateSessionSheet: View {
         .padding(20)
         .frame(width: 420)
         .onAppear {
-            workingDir = blueprint.startup.workingDir
             for param in blueprint.params {
                 paramValues[param.key] = param.defaultValue
             }
@@ -214,12 +191,10 @@ public struct CreateSessionSheet: View {
     }
 
     private var canCreate: Bool {
-        // All required text params must be filled
         let textOk = blueprint.params
             .filter { !$0.isSelect }
             .allSatisfy { !$0.isRequired || !(paramValues[$0.key] ?? "").isEmpty }
 
-        // All required select params must be loaded and filled
         let selectOk = blueprint.params
             .filter { $0.isSelect }
             .allSatisfy { param in
@@ -229,28 +204,5 @@ public struct CreateSessionSheet: View {
             }
 
         return textOk && selectOk
-    }
-
-    private func browseDirectory() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.message = "Choose a working directory"
-
-        if let expanded = expandTilde(workingDir) {
-            panel.directoryURL = URL(fileURLWithPath: expanded)
-        }
-
-        if panel.runModal() == .OK, let url = panel.url {
-            workingDir = url.path
-        }
-    }
-
-    private func expandTilde(_ path: String) -> String? {
-        if path.hasPrefix("~/") || path == "~" {
-            return NSString(string: path).expandingTildeInPath
-        }
-        return path.isEmpty ? nil : path
     }
 }

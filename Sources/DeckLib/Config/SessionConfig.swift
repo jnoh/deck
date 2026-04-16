@@ -181,12 +181,11 @@ public struct SessionConfig: Sendable {
     public let params: [SessionParam]
     public var filePath: URL?
     public var packageDir: URL?
-    public var overrideWorkingDir: String?
     public var paramValues: [String: String] = [:]
 
-    /// Effective working directory — override takes priority
+    /// Effective working directory
     public var effectiveWorkingDir: String {
-        overrideWorkingDir ?? startup.workingDir
+        startup.workingDir
     }
 
     /// Whether this config was loaded from a .deck package

@@ -10,8 +10,8 @@ struct MainView: View {
             SidebarView(
                 sessionManager: coordinator.sessionManager,
                 selectedSessionId: $coordinator.selectedSessionId,
-                onCreateSession: { blueprint, name, dir, params in
-                    coordinator.createAndStartSession(from: blueprint, name: name, workingDir: dir, params: params)
+                onCreateSession: { blueprint, name, params in
+                    coordinator.createAndStartSession(from: blueprint, name: name, params: params)
                 }
             )
             .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 400)

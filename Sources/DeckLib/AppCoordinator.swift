@@ -46,10 +46,9 @@ public final class AppCoordinator: @unchecked Sendable {
         startSession(session)
     }
 
-    /// Create a session with a custom name, working directory, and params
-    public func createAndStartSession(from blueprint: SessionConfig, name: String, workingDir: String, params: [String: String] = [:]) {
+    /// Create a session with a custom name and params
+    public func createAndStartSession(from blueprint: SessionConfig, name: String, params: [String: String] = [:]) {
         var customConfig = blueprint
-        customConfig.overrideWorkingDir = workingDir
         customConfig.paramValues = params
         let session = sessionManager.createInstance(from: customConfig)
         session.displayName = name
