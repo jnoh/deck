@@ -116,7 +116,7 @@ if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
     tmux attach -t "$TMUX_SESSION"
 else
     tmux new-session -s "$TMUX_SESSION" \
-        "export PATH=/tmp/deck-bin-remote:\$PATH; claude --settings /tmp/deck-hooks.json"
+        "export PATH=/tmp/deck-bin-remote:\$PATH; cd '${REMOTE_DIR:-\$HOME}'; claude --settings /tmp/deck-hooks.json"
 fi
 STARTUP
 
