@@ -35,7 +35,48 @@ esac
 /bin/echo "\$_json" >> "$REMOTE_STATUS"
 DECK_CLI
 
-# Step 1b: Write on-prompt hook (reuses ControlMaster, no password)
+# Step 1b: Write update-status hook (reuses ControlMaster, no password)
+ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-update-status.sh && chmod +x /tmp/deck-update-status.sh" <<UPDATE_STATUS
+#!/bin/bash
+STATE="\$1"
+INPUT=\$(cat)
+
+# Get transcript path from hook stdin
+TRANSCRIPT=\$(echo "\$INPUT" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(d.get('transcript_path', ''))
+except: pass
+" 2>/dev/null)
+
+# Sum tokens from transcript
+TOKENS=""
+if [ -n "\$TRANSCRIPT" ] && [ -f "\$TRANSCRIPT" ]; then
+    TOKENS=\$(python3 -c "
+import json, sys
+total = 0
+for line in open(sys.argv[1]):
+    try:
+        d = json.loads(line)
+        u = d.get('message', {}).get('usage', {})
+        if u:
+            total += u.get('input_tokens', 0)
+            total += u.get('output_tokens', 0)
+    except: pass
+if total >= 1000000: print(f'{total/1000000:.1f}M tokens')
+elif total >= 1000: print(f'{total//1000}k tokens')
+elif total > 0: print(f'{total} tokens')
+" "\$TRANSCRIPT" 2>/dev/null)
+fi
+
+DESC="${SSH_HOST}"
+[ -n "\$TOKENS" ] && DESC="\$DESC · \$TOKENS"
+
+deck status --state "\$STATE" --desc "\$DESC"
+UPDATE_STATUS
+
+# Step 1c: Write on-prompt hook (reuses ControlMaster)
 ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-on-prompt.sh && chmod +x /tmp/deck-on-prompt.sh" <<ON_PROMPT
 #!/bin/bash
 TITLE_FLAG="/tmp/deck-title-${DECK_SESSION_ID}"
@@ -53,7 +94,7 @@ except: pass
 " 2>/dev/null)
     [ -n "\$PROMPT" ] && deck title "\$PROMPT"
 fi
-deck status --state working --desc "Working"
+echo "\$INPUT" | /tmp/deck-update-status.sh working
 ON_PROMPT
 
 # Step 1c: Write startup script (reuses ControlMaster)
@@ -68,7 +109,7 @@ if ! command -v claude &>/dev/null; then echo "Error: claude not installed."; ex
 
 # Write hooks to a file — avoids all quoting issues with tmux/ssh
 cat > /tmp/deck-hooks.json << 'HOOKSJSON'
-{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"deck status --state working --desc Working"}]}],"Stop":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Error"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Needs_approval"}]}]}}
+{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh working"}]}],"Stop":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}]}}
 HOOKSJSON
 
 if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
