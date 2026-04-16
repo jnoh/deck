@@ -663,7 +663,7 @@ esac
         guard let session = session else { return }
         let statusPath = GhosttyService.statusFilePath(for: session.id)
 
-        statusPollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] timer in
+        statusPollTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] timer in
             guard let self = self, self.session != nil else {
                 timer.invalidate()
                 return
