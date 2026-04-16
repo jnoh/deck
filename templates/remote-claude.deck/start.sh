@@ -39,19 +39,21 @@ DECK_CLI
 ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-on-prompt.sh && chmod +x /tmp/deck-on-prompt.sh" <<'ON_PROMPT'
 #!/bin/bash
 TITLE_FLAG="/tmp/deck-title-${DECK_SESSION_ID}"
-INPUT=$(perl -e 'alarm 2; local $/; print <STDIN>' 2>/dev/null || true)
+INPUT=$(cat)
 if [ ! -f "$TITLE_FLAG" ] && [ -n "$INPUT" ]; then
     touch "$TITLE_FLAG"
     PROMPT=$(echo "$INPUT" | python3 -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
-    print(d.get('prompt', '')[:50])
+    p = d.get('prompt', '')
+    if p:
+        print(p[:50])
 except: pass
 " 2>/dev/null)
     [ -n "$PROMPT" ] && deck title "$PROMPT"
 fi
-deck status --state working --desc "Processing prompt"
+deck status --state working --desc "Working"
 ON_PROMPT
 
 # Step 1c: Write startup script (reuses ControlMaster)
@@ -66,7 +68,7 @@ if ! command -v claude &>/dev/null; then echo "Error: claude not installed."; ex
 
 # Write hooks to a file — avoids all quoting issues with tmux/ssh
 cat > /tmp/deck-hooks.json << 'HOOKSJSON'
-{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"deck status --state working --desc Working"}]}],"Stop":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Error_your_turn"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Needs_approval"}]}]}}
+{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"deck status --state working --desc Working"}]}],"Stop":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Your_turn"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Error"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"deck status --state needs-input --desc Needs_approval"}]}]}}
 HOOKSJSON
 
 if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
