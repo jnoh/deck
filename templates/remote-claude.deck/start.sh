@@ -13,36 +13,36 @@ deck title "$SSH_HOST"
 deck status --state starting --desc "Connecting to $SSH_HOST"
 
 # Step 1a: Write deck CLI to remote (establishes ControlMaster, prompts password)
-ssh $SSH_OPTS "$SSH_DEST" "mkdir -p /tmp/deck-bin-remote && cat > /tmp/deck-bin-remote/deck && chmod +x /tmp/deck-bin-remote/deck" <<'DECK_CLI'
+ssh $SSH_OPTS "$SSH_DEST" "mkdir -p /tmp/deck-bin-remote && cat > /tmp/deck-bin-remote/deck && chmod +x /tmp/deck-bin-remote/deck" <<DECK_CLI
 #!/bin/sh
 _q='"'
-_cmd="$1"; shift
+_cmd="\$1"; shift
 _json=""
-case "$_cmd" in
+case "\$_cmd" in
   status)
     _s="" _d=""
-    while [ $# -gt 0 ]; do case "$1" in --state) _s="$2"; shift 2;; --desc) _d="$2"; shift 2;; *) shift;; esac; done
-    _json="{${_q}type${_q}:${_q}status${_q}"
-    [ -n "$_s" ] && _json="$_json,${_q}state${_q}:${_q}$_s${_q}"
-    [ -n "$_d" ] && _json="$_json,${_q}desc${_q}:${_q}$_d${_q}"
-    _json="$_json}";;
-  title) _json="{${_q}type${_q}:${_q}title${_q},${_q}text${_q}:${_q}$*${_q}}";;
-  notify) _json="{${_q}type${_q}:${_q}notify${_q}}";;
-  exit) _json="{${_q}type${_q}:${_q}exit${_q}}";;
-  clear) _json="{${_q}type${_q}:${_q}clear${_q}}";;
+    while [ \$# -gt 0 ]; do case "\$1" in --state) _s="\$2"; shift 2;; --desc) _d="\$2"; shift 2;; *) shift;; esac; done
+    _json="{\${_q}type\${_q}:\${_q}status\${_q}"
+    [ -n "\$_s" ] && _json="\$_json,\${_q}state\${_q}:\${_q}\$_s\${_q}"
+    [ -n "\$_d" ] && _json="\$_json,\${_q}desc\${_q}:\${_q}\$_d\${_q}"
+    _json="\$_json}";;
+  title) _json="{\${_q}type\${_q}:\${_q}title\${_q},\${_q}text\${_q}:\${_q}\$*\${_q}}";;
+  notify) _json="{\${_q}type\${_q}:\${_q}notify\${_q}}";;
+  exit) _json="{\${_q}type\${_q}:\${_q}exit\${_q}}";;
+  clear) _json="{\${_q}type\${_q}:\${_q}clear\${_q}}";;
   *) exit 1;;
 esac
-/bin/echo "$_json" >> "$DECK_STATUS_FILE"
+/bin/echo "\$_json" >> "$REMOTE_STATUS"
 DECK_CLI
 
 # Step 1b: Write on-prompt hook (reuses ControlMaster, no password)
-ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-on-prompt.sh && chmod +x /tmp/deck-on-prompt.sh" <<'ON_PROMPT'
+ssh $SSH_OPTS "$SSH_DEST" "cat > /tmp/deck-on-prompt.sh && chmod +x /tmp/deck-on-prompt.sh" <<ON_PROMPT
 #!/bin/bash
 TITLE_FLAG="/tmp/deck-title-${DECK_SESSION_ID}"
-INPUT=$(cat)
-if [ ! -f "$TITLE_FLAG" ] && [ -n "$INPUT" ]; then
-    touch "$TITLE_FLAG"
-    PROMPT=$(echo "$INPUT" | python3 -c "
+INPUT=\$(cat)
+if [ ! -f "\$TITLE_FLAG" ] && [ -n "\$INPUT" ]; then
+    touch "\$TITLE_FLAG"
+    PROMPT=\$(echo "\$INPUT" | python3 -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
@@ -51,7 +51,7 @@ try:
         print(p[:50])
 except: pass
 " 2>/dev/null)
-    [ -n "$PROMPT" ] && deck title "$PROMPT"
+    [ -n "\$PROMPT" ] && deck title "\$PROMPT"
 fi
 deck status --state working --desc "Working"
 ON_PROMPT
@@ -75,7 +75,7 @@ if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
     tmux attach -t "$TMUX_SESSION"
 else
     tmux new-session -s "$TMUX_SESSION" \
-        "export PATH=/tmp/deck-bin-remote:\$PATH; export DECK_SESSION_ID='$DECK_SESSION_ID'; export DECK_STATUS_FILE='$DECK_STATUS_FILE'; claude --settings /tmp/deck-hooks.json"
+        "export PATH=/tmp/deck-bin-remote:\$PATH; claude --settings /tmp/deck-hooks.json"
 fi
 STARTUP
 
