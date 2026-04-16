@@ -47,7 +47,11 @@ public struct SidebarView: View {
                     } else {
                         ForEach(sessionManager.blueprints, id: \.name) { blueprint in
                             Button {
-                                blueprintForSheet = blueprint
+                                if blueprint.params.isEmpty {
+                                    onCreateSession?(blueprint, blueprint.displayName, [:])
+                                } else {
+                                    blueprintForSheet = blueprint
+                                }
                             } label: {
                                 Label(
                                     "\(blueprint.icon) \(blueprint.displayName)",
