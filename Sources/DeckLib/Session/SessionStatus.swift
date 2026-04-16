@@ -11,7 +11,7 @@ public final class SessionStatus: @unchecked Sendable {
     public var notificationCount: Int = 0
 
     public var needsAttention: Bool {
-        customState == "needs-input" || notificationCount > 0
+        customState == "needs-input" || customState == "needs-approval" || notificationCount > 0
     }
 
     public init() {}

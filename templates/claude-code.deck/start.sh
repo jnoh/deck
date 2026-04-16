@@ -18,7 +18,7 @@ HOOKS=$(cat <<EOF
   "PostToolUse":[{"hooks":[{"type":"command","command":"$HOOK_DIR/update-status.sh working"}]}],
   "Stop":[{"hooks":[{"type":"command","command":"$HOOK_DIR/update-status.sh needs-input"}]}],
   "StopFailure":[{"hooks":[{"type":"command","command":"$HOOK_DIR/update-status.sh needs-input"}]}],
-  "PermissionRequest":[{"hooks":[{"type":"command","command":"$HOOK_DIR/update-status.sh needs-input"}]}]
+  "PermissionRequest":[{"hooks":[{"type":"command","command":"$HOOK_DIR/update-status.sh needs-approval"}]}]
 }}
 EOF
 )

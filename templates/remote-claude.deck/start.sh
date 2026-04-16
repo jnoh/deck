@@ -109,7 +109,7 @@ if ! command -v claude &>/dev/null; then echo "Error: claude not installed."; ex
 
 # Write hooks to a file — avoids all quoting issues with tmux/ssh
 cat > /tmp/deck-hooks.json << 'HOOKSJSON'
-{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh working"}]}],"Stop":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}]}}
+{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"UserPromptSubmit":[{"hooks":[{"type":"command","command":"/tmp/deck-on-prompt.sh"}]}],"PostToolUse":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh working"}]}],"Stop":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"StopFailure":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-input"}]}],"PermissionRequest":[{"hooks":[{"type":"command","command":"/tmp/deck-update-status.sh needs-approval"}]}]}}
 HOOKSJSON
 
 if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then

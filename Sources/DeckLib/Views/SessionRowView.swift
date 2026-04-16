@@ -68,7 +68,7 @@ public struct SessionRowView: View {
             return .white
         case "needs-input":
             return .orange
-        case "error":
+        case "needs-approval", "error":
             return .red
         default:
             return .gray
