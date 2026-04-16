@@ -127,8 +127,13 @@ STARTUP
 (
     while true; do
         CONTENT=$(ssh $SSH_OPTS "$SSH_DEST" "cat '$REMOTE_STATUS' 2>/dev/null && rm -f '$REMOTE_STATUS'" 2>/dev/null)
+        if [ $? -ne 0 ]; then
+            # SSH failed — back off to avoid hammering
+            sleep 5
+            continue
+        fi
         [ -n "$CONTENT" ] && echo "$CONTENT" >> "$LOCAL_STATUS"
-        sleep 0.1
+        sleep 1
     done
 ) &
 POLLER_PID=$!
